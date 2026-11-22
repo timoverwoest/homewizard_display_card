@@ -1,0 +1,6 @@
+# Bekeken door Claude op 2026-11-22: demowaarden en eigen logo, geen namen, adressen of
+# apparaat-ID's; PNG-chunks alleen IHDR/IDAT/IEND (geen EXIF, tekst of tijd).
+# Per bestand, zodat elke nieuwe afbeelding opnieuw bekeken wordt.
+images/logo.png
+images/screenshot.png
+images/screenshot-export.png

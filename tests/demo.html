@@ -1,0 +1,176 @@
+<!doctype html>
+<!--
+  Demo and visual test page for the HomeWizard Display Card, with a fake `hass` object.
+  Serve the repository root with any static web server, for example
+    python3 -m http.server 8765
+  and open http://localhost:8765/tests/demo.html. All entity ids are placeholders.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HomeWizard Display Card demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+  <style>
+    :root { color-scheme: light dark; --bg: #f3f4f6; --fg: #111; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #111318; --fg: #e8e8e8; } }
+    body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 14px/1.4 Roboto, sans-serif; }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 520px)); gap: 16px; }
+    figure { margin: 0; }
+    figcaption { font-size: 12px; opacity: 0.75; margin-bottom: 4px; }
+    .fixed { height: 180px; }
+    .narrow { width: 260px; }
+  </style>
+  <script>
+    // Stand-in for Home Assistant's ha-card.
+    customElements.define("ha-card", class extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: "open" }).innerHTML =
+          "<style>:host{display:block;border-radius:var(--ha-card-border-radius,12px);overflow:hidden}</style><slot></slot>";
+      }
+    });
+  </script>
+  <script type="module" src="../homewizard_display_card.js"></script>
+</head>
+<body>
+  <h1>HomeWizard Display Card: demo</h1>
+  <div class="controls">
+    <label>Number format
+      <select id="lang">
+        <option value="nl">nl (20,7)</option>
+        <option value="en">en (20.7)</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="live" checked> live changes</label>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <script type="module">
+    await customElements.whenDefined("homewizard-display-card");
+    const st = (state, unit) => ({ state: String(state), attributes: { unit_of_measurement: unit } });
+
+    // Scenarios with own entities (battery sensor counts charging as positive).
+    const OWN = {
+      grid_power: "sensor.demo_grid_power",
+      grid_import: "sensor.demo_import_today",
+      grid_export: "sensor.demo_export_today",
+      battery_soc: "sensor.demo_battery_soc",
+      battery_power: "sensor.demo_battery_power",
+      battery_power_sign: "charge_positive",
+      solar_energy: "sensor.demo_solar_today",
+      water: "sensor.demo_water_today",
+      water_flow: "sensor.demo_water_flow",
+      use_energy_settings: false,
+    };
+    const scenario = (p, imp, exp, soc, waterM3, flow, bat, solar) => ({
+      "sensor.demo_grid_power": st(p, "W"),
+      "sensor.demo_import_today": st(imp, "kWh"),
+      "sensor.demo_export_today": st(exp, "kWh"),
+      "sensor.demo_battery_soc": st(soc, "%"),
+      "sensor.demo_water_today": st(waterM3, "m³"),
+      "sensor.demo_water_flow": st(flow, "L/min"),
+      "sensor.demo_battery_power": st(bat, "W"),
+      "sensor.demo_solar_today": st(solar, "kWh"),
+    });
+
+    // Auto-detect: Energy settings with two tariffs, solar, battery and water.
+    const PREFS = {
+      energy_sources: [
+        { type: "grid", stat_energy_from: "sensor.demo_import_t1", stat_energy_to: "sensor.demo_export_t1", stat_rate: "sensor.demo_p1_power" },
+        { type: "grid", stat_energy_from: "sensor.demo_import_t2", stat_energy_to: "sensor.demo_export_t2", stat_rate: "sensor.demo_p1_power" },
+        { type: "solar", stat_energy_from: "sensor.demo_solar_total" },
+        { type: "battery", stat_energy_from: "sensor.demo_bat_out", stat_energy_to: "sensor.demo_bat_in", stat_rate: "sensor.demo_bat_power", stat_soc: "sensor.demo_bat_soc" },
+        { type: "water", stat_energy_from: "sensor.demo_water_total", stat_rate: "sensor.demo_water_flow_auto" },
+      ],
+      device_consumption: [],
+    };
+    // Today's change up to the last 5-minute statistic, and the meter reading at that moment.
+    const STATS = {
+      "sensor.demo_import_t1": { change: 3.1, last: 4210.0 },
+      "sensor.demo_import_t2": { change: 5.2, last: 6630.0 },
+      "sensor.demo_export_t1": { change: 1.4, last: 2100.0 },
+      "sensor.demo_export_t2": { change: 1.7, last: 3200.0 },
+      "sensor.demo_solar_total": { change: 12.4, last: 8120.0 },
+      "sensor.demo_water_total": { change: 211, last: 512300 },
+    };
+    const autoStates = {
+      "sensor.demo_p1_power": st(1240, "W"),
+      "sensor.demo_import_t1": st(4210.0, "kWh"),
+      "sensor.demo_import_t2": st(6630.1, "kWh"),
+      "sensor.demo_export_t1": st(2100.0, "kWh"),
+      "sensor.demo_export_t2": st(3200.0, "kWh"),
+      "sensor.demo_solar_total": st(8120.2, "kWh"),
+      "sensor.demo_bat_soc": st(76, "%"),
+      "sensor.demo_bat_power": st(640, "W"),
+      "sensor.demo_water_total": st(512.303, "m³"),
+      "sensor.demo_water_flow_auto": st(0, "L/min"),
+    };
+
+    const callWS = async (msg) => {
+      if (msg.type === "energy/get_prefs") return PREFS;
+      if (msg.type === "recorder/statistic_during_period") {
+        const s = STATS[msg.statistic_id];
+        return s ? { change: s.change } : {};
+      }
+      if (msg.type === "recorder/statistics_during_period") {
+        const out = {};
+        for (const id of msg.statistic_ids) if (STATS[id]) out[id] = [{ start: Date.now() - 300000, state: STATS[id].last }];
+        return out;
+      }
+      throw new Error(`demo: ${msg.type} not supported`);
+    };
+
+    const cards = [
+      { title: "Energy settings (auto-detect, live)", config: {}, states: autoStates, auto: true },
+      { title: "Taking from the grid, battery charging", config: OWN, states: scenario(3666, 20.7, 0, 0, 0.158, 0, 9, 0.1) },
+      { title: "Summer noon: exporting, battery delivering, water running", config: OWN, states: scenario(-2150, 3.4, 8.6, 64, 0.212, 7.5, -450, 14.2) },
+      { title: "Evening: taking from the grid, battery delivering", config: OWN, states: scenario(1500, 12.3, 4.1, 40, 0.3, 0, -300, 6.0) },
+      { title: "Above 10 kW, goals reached", config: OWN, states: scenario(12345, 40, 0, 100, 0.65, 0, 0, 30) },
+      { title: "No data at all", config: { use_energy_settings: false }, states: {} },
+      { title: "Fixed height 180 px (sections view, rows set)", config: OWN, states: scenario(1500, 12.3, 4.1, 40, 0.3, 0, -300, 6.0), cls: "fixed" },
+      { title: "Narrow, 260 px", config: OWN, states: scenario(-480, 2.1, 0.4, 88, 0.05, 0, -120, 3.3), cls: "narrow" },
+      { title: "Own colours", config: { ...OWN, color_grid: "#ff9800", color_delivery: "#00bcd4", color_background: "#1c1c1c" }, states: scenario(820, 5.5, 1.2, 52, 0.12, 0, 0, 8.8) },
+    ];
+
+    const grid = document.getElementById("grid");
+    const lang = document.getElementById("lang");
+    const els = cards.map((c) => {
+      const fig = document.createElement("figure");
+      fig.innerHTML = `<figcaption></figcaption>`;
+      fig.firstChild.textContent = c.title;
+      const el = document.createElement("homewizard-display-card");
+      if (c.cls) el.classList.add(c.cls);
+      el.setConfig({ type: "custom:homewizard-display-card", ...c.config });
+      fig.appendChild(el);
+      grid.appendChild(fig);
+      return el;
+    });
+    const hassFor = (c) => ({
+      states: c.states,
+      language: lang.value,
+      locale: { language: lang.value, number_format: "language" },
+      config: { time_zone: "Europe/Amsterdam" },
+      callWS,
+    });
+    const update = () => cards.forEach((c, i) => { els[i].hass = hassFor(c); });
+    update();
+    lang.addEventListener("change", update);
+
+    // Live: grid power wanders and the meters keep counting.
+    setInterval(() => {
+      if (!document.getElementById("live").checked) return;
+      const s = autoStates;
+      const p = Math.round(Number(s["sensor.demo_p1_power"].state) + (Math.random() - 0.5) * 400);
+      s["sensor.demo_p1_power"] = st(p, "W");
+      if (p > 0) s["sensor.demo_import_t2"] = st((Number(s["sensor.demo_import_t2"].state) + p / 3.6e6 * 2000).toFixed(4), "kWh");
+      cards[0].states = { ...s };
+      update();
+    }, 2000);
+    window.demo = { cards, els, update };
+  </script>
+</body>
+</html>
