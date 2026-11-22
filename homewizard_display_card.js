@@ -25,20 +25,53 @@ const HWDC = (() => {
   // What each source can show (the "Now / Today / Auto / Costs" of the display), the mode it
   // starts with and its default goals. Auto = now while something flows, otherwise today.
   const SOURCES = {
-    grid: { modes: ["now", "today", "cost"], start: "now", goals: { now: 7000, today: 25, cost: 10 } },
-    solar: { modes: ["now", "today", "auto"], start: "today", goals: { now: 5000, today: 25 } },
+    grid: {
+      modes: ["now", "today", "cost"],
+      start: "now",
+      goals: { now: 7000, today: 25, cost: 10 },
+    },
+    solar: {
+      modes: ["now", "today", "auto"],
+      start: "today",
+      goals: { now: 5000, today: 25 },
+    },
     battery: { modes: ["now"], start: "now", goals: { now: 100 } },
-    water: { modes: ["now", "today", "auto", "cost"], start: "auto", goals: { now: 10, today: 500, cost: 2 } },
-    gas: { modes: ["now", "today", "auto", "cost"], start: "today", goals: { now: 2, today: 5, cost: 10 } },
-    consumption: { modes: ["now", "today"], start: "now", goals: { now: 7000, today: 25 } },
-    self_sufficiency: { modes: ["now", "today"], start: "today", goals: { now: 100, today: 100 } },
-    device: { modes: ["now", "today", "auto"], start: "auto", goals: { now: 3000, today: 10 } },
+    water: {
+      modes: ["now", "today", "auto", "cost"],
+      start: "auto",
+      goals: { now: 10, today: 500, cost: 2 },
+    },
+    gas: {
+      modes: ["now", "today", "auto", "cost"],
+      start: "today",
+      goals: { now: 2, today: 5, cost: 10 },
+    },
+    consumption: {
+      modes: ["now", "today"],
+      start: "now",
+      goals: { now: 7000, today: 25 },
+    },
+    self_sufficiency: {
+      modes: ["now", "today"],
+      start: "today",
+      goals: { now: 100, today: 100 },
+    },
+    device: {
+      modes: ["now", "today", "auto"],
+      start: "auto",
+      goals: { now: 3000, today: 10 },
+    },
     entity: { modes: ["now"], start: "now", goals: { now: 100 } },
     none: { modes: [], start: null, goals: {} },
   };
   const GOAL_KEY = { now: "goal_now", today: "goal_today", cost: "goal_cost" };
   const GOAL_KEYS = Object.values(GOAL_KEY);
-  const MODE_GOALS = { now: ["now"], today: ["today"], auto: ["now", "today"], cost: ["cost"] };
+  const MODE_GOALS = {
+    now: ["now"],
+    today: ["today"],
+    auto: ["now", "today"],
+    cost: ["cost"],
+  };
 
   // The display's default Usage Overview.
   const SLOTS = ["circle_1", "circle_2", "circle_3", "top", "middle", "bottom"];
@@ -52,8 +85,17 @@ const HWDC = (() => {
   };
 
   const ENTITY_KEYS = [
-    "grid_power", "grid_import", "grid_export", "solar_power", "solar_energy",
-    "battery_soc", "battery_power", "water", "water_flow", "gas", "gas_flow",
+    "grid_power",
+    "grid_import",
+    "grid_export",
+    "solar_power",
+    "solar_energy",
+    "battery_soc",
+    "battery_power",
+    "water",
+    "water_flow",
+    "gas",
+    "gas_flow",
   ];
   // null = no fixed default: the night background follows the day background, and the text
   // colour is worked out from the background.
@@ -70,8 +112,14 @@ const HWDC = (() => {
   const COLOR_KEYS = Object.keys(COLOR_DEFAULTS);
   // Optional own colours for the charts view. Empty = the colour of the display.
   const CHART_COLOR_KEYS = [
-    "chart_color_grid", "chart_color_delivery", "chart_color_solar", "chart_color_consumption",
-    "chart_color_self_sufficiency", "chart_color_battery", "chart_color_water", "chart_color_gas",
+    "chart_color_grid",
+    "chart_color_delivery",
+    "chart_color_solar",
+    "chart_color_consumption",
+    "chart_color_self_sufficiency",
+    "chart_color_battery",
+    "chart_color_water",
+    "chart_color_gas",
   ];
   // Darker accents for a light background, so rings, bars and units keep enough contrast.
   // Only used for colours the user did not set.
@@ -83,11 +131,24 @@ const HWDC = (() => {
     color_gas: "#c27a00",
   };
   // Suggestions in the editor. The default stays the black of the display, by day and by night.
-  const BACKGROUND_SUGGESTIONS = { display: "#05070b", day: "#f4f5f7", night: "#1c1c1c" };
+  const BACKGROUND_SUGGESTIONS = {
+    display: "#05070b",
+    day: "#f4f5f7",
+    night: "#1c1c1c",
+  };
   const SIGNS = ["discharge_positive", "charge_positive"];
   // Charts view: the charts of the HomeWizard app, in the app's order, and its periods.
   const VIEWS = ["display", "charts"];
-  const CHARTS = ["water", "gas", "grid", "solar", "consumption", "self_sufficiency", "standby", "battery"];
+  const CHARTS = [
+    "water",
+    "gas",
+    "grid",
+    "solar",
+    "consumption",
+    "self_sufficiency",
+    "standby",
+    "battery",
+  ];
   const PERIODS = ["day", "week", "month", "year"];
   // A colour ends up inside an SVG attribute, so only plain CSS colour syntax is accepted.
   const COLOR_RE = /^[#a-zA-Z0-9(),.%\s-]{1,64}$/;
@@ -97,11 +158,17 @@ const HWDC = (() => {
   const toList = (v) => {
     if (empty(v)) return [];
     const list = Array.isArray(v) ? v : [v];
-    return list.filter((x) => typeof x === "string" && x.trim() !== "").map((x) => x.trim());
+    return list
+      .filter((x) => typeof x === "string" && x.trim() !== "")
+      .map((x) => x.trim());
   };
 
   const toColor = (key, v) => {
-    if (Array.isArray(v) && v.length === 3 && v.every((n) => Number.isFinite(Number(n)))) {
+    if (
+      Array.isArray(v) &&
+      v.length === 3 &&
+      v.every((n) => Number.isFinite(Number(n)))
+    ) {
       return `rgb(${v.map((n) => Math.max(0, Math.min(255, Math.round(Number(n))))).join(",")})`;
     }
     if (typeof v === "string" && COLOR_RE.test(v.trim())) return v.trim();
@@ -110,13 +177,17 @@ const HWDC = (() => {
 
   // Relative luminance (0 = black, 1 = white) of a hex or rgb() colour; null if unknown.
   const luminance = (color) => {
-    const s = String(color || "").trim().toLowerCase();
+    const s = String(color || "")
+      .trim()
+      .toLowerCase();
     let rgb = null;
     const hex = s.match(/^#([0-9a-f]{3,8})$/);
     if (hex) {
       const h = hex[1];
-      if (h.length === 3 || h.length === 4) rgb = [0, 1, 2].map((i) => parseInt(h[i] + h[i], 16));
-      else if (h.length === 6 || h.length === 8) rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+      if (h.length === 3 || h.length === 4)
+        rgb = [0, 1, 2].map((i) => parseInt(h[i] + h[i], 16));
+      else if (h.length === 6 || h.length === 8)
+        rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
     }
     const fn = s.match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/);
     if (fn) rgb = [fn[1], fn[2], fn[3]].map(Number);
@@ -134,14 +205,18 @@ const HWDC = (() => {
   // Assistant shows a dark theme (user profile: Auto follows the device), else the day one.
   const effectiveColors = (c, hass) => {
     const dark = Boolean(hass && hass.themes && hass.themes.darkMode);
-    const background = dark && c.color_background_dark ? c.color_background_dark : c.color_background;
+    const background =
+      dark && c.color_background_dark
+        ? c.color_background_dark
+        : c.color_background;
     const lum = luminance(background);
     const light = lum !== null && lum > 0.4;
     const text = c.color_text || (light ? "#14161a" : "#ffffff");
     const accents = {};
     if (light) {
       for (const [key, value] of Object.entries(LIGHT_ACCENTS)) {
-        if (String(c[key]).toLowerCase() === COLOR_DEFAULTS[key]) accents[key] = value;
+        if (String(c[key]).toLowerCase() === COLOR_DEFAULTS[key])
+          accents[key] = value;
       }
     }
     return { background, text, dark, accents };
@@ -149,13 +224,28 @@ const HWDC = (() => {
 
   const normalizeSlot = (key, raw) => {
     const def = SLOT_DEFAULTS[key];
-    const r = typeof raw === "string" ? { source: raw } : raw && typeof raw === "object" ? raw : {};
+    const r =
+      typeof raw === "string"
+        ? { source: raw }
+        : raw && typeof raw === "object"
+          ? raw
+          : {};
     const source = empty(r.source) ? def.source : r.source;
     const spec = SOURCES[source];
-    if (!spec) throw new Error(`${key}.source: expected one of ${Object.keys(SOURCES).join(", ")}`);
-    let mode = empty(r.mode) ? (source === def.source ? def.mode : spec.start) : r.mode;
+    if (!spec)
+      throw new Error(
+        `${key}.source: expected one of ${Object.keys(SOURCES).join(", ")}`
+      );
+    let mode = empty(r.mode)
+      ? source === def.source
+        ? def.mode
+        : spec.start
+      : r.mode;
     if (!spec.modes.length) mode = null;
-    else if (!spec.modes.includes(mode)) throw new Error(`${key}.mode: ${source} can show ${spec.modes.join(", ")}`);
+    else if (!spec.modes.includes(mode))
+      throw new Error(
+        `${key}.mode: ${source} can show ${spec.modes.join(", ")}`
+      );
     const slot = { source, mode };
     for (const [m, g] of Object.entries(spec.goals)) {
       const k = GOAL_KEY[m];
@@ -163,7 +253,8 @@ const HWDC = (() => {
         slot[k] = g;
       } else {
         const n = Number(r[k]);
-        if (!Number.isFinite(n) || n <= 0) throw new Error(`${key}.${k}: expected a number above 0`);
+        if (!Number.isFinite(n) || n <= 0)
+          throw new Error(`${key}.${k}: expected a number above 0`);
         slot[k] = n;
       }
     }
@@ -180,32 +271,47 @@ const HWDC = (() => {
   // Fills in defaults and checks the values. Throws an Error with a readable message, which
   // Home Assistant shows on the card.
   const normalizeConfig = (config) => {
-    if (!config || typeof config !== "object") throw new Error("Invalid configuration");
+    if (!config || typeof config !== "object")
+      throw new Error("Invalid configuration");
     const c = {};
     for (const key of ENTITY_KEYS) {
       const v = config[key];
       if (!empty(v) && !(typeof v === "string" || Array.isArray(v))) {
-        throw new Error(`${key}: expected an entity id or a list of entity ids`);
+        throw new Error(
+          `${key}: expected an entity id or a list of entity ids`
+        );
       }
       c[key] = toList(v);
     }
-    c.battery_power_sign = empty(config.battery_power_sign) ? SIGNS[0] : config.battery_power_sign;
-    if (!SIGNS.includes(c.battery_power_sign)) throw new Error(`battery_power_sign: expected ${SIGNS.join(" or ")}`);
+    c.battery_power_sign = empty(config.battery_power_sign)
+      ? SIGNS[0]
+      : config.battery_power_sign;
+    if (!SIGNS.includes(c.battery_power_sign))
+      throw new Error(`battery_power_sign: expected ${SIGNS.join(" or ")}`);
     c.use_energy_settings = config.use_energy_settings !== false;
-    for (const key of COLOR_KEYS) c[key] = empty(config[key]) ? COLOR_DEFAULTS[key] : toColor(key, config[key]);
-    for (const key of CHART_COLOR_KEYS) c[key] = empty(config[key]) ? null : toColor(key, config[key]);
+    for (const key of COLOR_KEYS)
+      c[key] = empty(config[key])
+        ? COLOR_DEFAULTS[key]
+        : toColor(key, config[key]);
+    for (const key of CHART_COLOR_KEYS)
+      c[key] = empty(config[key]) ? null : toColor(key, config[key]);
     for (const key of SLOTS) c[key] = normalizeSlot(key, config[key]);
     // Charts view, like the charts of the HomeWizard app.
     c.view = empty(config.view) ? "display" : config.view;
-    if (!VIEWS.includes(c.view)) throw new Error(`view: expected ${VIEWS.join(" or ")}`);
+    if (!VIEWS.includes(c.view))
+      throw new Error(`view: expected ${VIEWS.join(" or ")}`);
     c.charts = toList(config.charts);
     for (const k of c.charts) {
-      if (!CHARTS.includes(k)) throw new Error(`charts: unknown chart "${k}"; expected ${CHARTS.join(", ")}`);
+      if (!CHARTS.includes(k))
+        throw new Error(
+          `charts: unknown chart "${k}"; expected ${CHARTS.join(", ")}`
+        );
     }
     c.chart_entities = toList(config.chart_entities);
     c.show_view_switch = config.show_view_switch !== false;
     c.period = empty(config.period) ? "day" : config.period;
-    if (!PERIODS.includes(c.period)) throw new Error(`period: expected ${PERIODS.join(", ")}`);
+    if (!PERIODS.includes(c.period))
+      throw new Error(`period: expected ${PERIODS.join(", ")}`);
     return c;
   };
 
@@ -224,15 +330,33 @@ const HWDC = (() => {
     if (pc.stat_rate_to) terms.push({ id: pc.stat_rate_to, sign: -1 });
     if (pc.stat_rate_to_home) terms.push({ id: pc.stat_rate_to_home, sign: 1 });
     if (pc.stat_rate_to_grid) terms.push({ id: pc.stat_rate_to_grid, sign: 1 });
-    if (pc.stat_rate_from_grid) terms.push({ id: pc.stat_rate_from_grid, sign: -1 });
-    if (pc.stat_rate_from_solar) terms.push({ id: pc.stat_rate_from_solar, sign: -1 });
+    if (pc.stat_rate_from_grid)
+      terms.push({ id: pc.stat_rate_from_grid, sign: -1 });
+    if (pc.stat_rate_from_solar)
+      terms.push({ id: pc.stat_rate_from_solar, sign: -1 });
     return terms;
   };
 
   const AUTO_KEYS = [
-    "gridPower", "gridImport", "gridExport", "gridCost", "gridCompensation", "solarPower", "solar",
-    "batterySoc", "batteryPower", "batteryIn", "batteryOut", "water", "waterFlow", "waterCost",
-    "gas", "gasFlow", "gasCost", "homePower", "homeEnergy",
+    "gridPower",
+    "gridImport",
+    "gridExport",
+    "gridCost",
+    "gridCompensation",
+    "solarPower",
+    "solar",
+    "batterySoc",
+    "batteryPower",
+    "batteryIn",
+    "batteryOut",
+    "water",
+    "waterFlow",
+    "waterCost",
+    "gas",
+    "gasFlow",
+    "gasCost",
+    "homePower",
+    "homeEnergy",
   ];
 
   // Collects statistic and entity ids from the Energy settings (energy/get_prefs) and the cost
@@ -240,17 +364,35 @@ const HWDC = (() => {
   // grid format and the older flow_from/flow_to lists.
   const sourcesFromPrefs = (prefs, info) => {
     const out = {};
-    AUTO_KEYS.forEach((k) => { out[k] = []; });
+    AUTO_KEYS.forEach((k) => {
+      out[k] = [];
+    });
     const costs = (info && info.cost_sensors) || {};
-    const add = (key, id) => { if (id) out[key].push(id); };
-    const list = prefs && Array.isArray(prefs.energy_sources) ? prefs.energy_sources : [];
+    const add = (key, id) => {
+      if (id) out[key].push(id);
+    };
+    const list =
+      prefs && Array.isArray(prefs.energy_sources) ? prefs.energy_sources : [];
     for (const s of list) {
       if (!s || typeof s !== "object") continue;
       if (s.type === "grid") {
-        const from = [s, ...(s.flow_from || [])].filter((f) => f && f.stat_energy_from);
-        const to = [s, ...(s.flow_to || [])].filter((f) => f && f.stat_energy_to);
-        from.forEach((f) => { add("gridImport", f.stat_energy_from); add("gridCost", f.stat_cost || costs[f.stat_energy_from]); });
-        to.forEach((f) => { add("gridExport", f.stat_energy_to); add("gridCompensation", f.stat_compensation || costs[f.stat_energy_to]); });
+        const from = [s, ...(s.flow_from || [])].filter(
+          (f) => f && f.stat_energy_from
+        );
+        const to = [s, ...(s.flow_to || [])].filter(
+          (f) => f && f.stat_energy_to
+        );
+        from.forEach((f) => {
+          add("gridImport", f.stat_energy_from);
+          add("gridCost", f.stat_cost || costs[f.stat_energy_from]);
+        });
+        to.forEach((f) => {
+          add("gridExport", f.stat_energy_to);
+          add(
+            "gridCompensation",
+            f.stat_compensation || costs[f.stat_energy_to]
+          );
+        });
         out.gridPower.push(...powerTerms(s));
         (s.power || []).forEach((p) => out.gridPower.push(...powerTerms(p)));
       } else if (s.type === "solar") {
@@ -259,11 +401,20 @@ const HWDC = (() => {
       } else if (s.type === "battery") {
         add("batterySoc", s.stat_soc);
         out.batteryPower.push(...powerTerms(s));
-        [s.stat_energy_from, s.stat_energy_to_home, s.stat_energy_to_grid].forEach((id) => add("batteryOut", id));
-        [s.stat_energy_to, s.stat_energy_from_grid, s.stat_energy_from_solar].forEach((id) => add("batteryIn", id));
+        [
+          s.stat_energy_from,
+          s.stat_energy_to_home,
+          s.stat_energy_to_grid,
+        ].forEach((id) => add("batteryOut", id));
+        [
+          s.stat_energy_to,
+          s.stat_energy_from_grid,
+          s.stat_energy_from_solar,
+        ].forEach((id) => add("batteryIn", id));
       } else if (s.type === "water" || s.type === "gas") {
         add(s.type, s.stat_energy_from);
-        if (s.stat_rate) out[`${s.type}Flow`].push({ id: s.stat_rate, sign: 1 });
+        if (s.stat_rate)
+          out[`${s.type}Flow`].push({ id: s.stat_rate, sign: 1 });
         add(`${s.type}Cost`, s.stat_cost || costs[s.stat_energy_from]);
       } else if (s.type === "home") {
         if (s.stat_rate) out.homePower.push({ id: s.stat_rate, sign: 1 });
@@ -289,7 +440,8 @@ const HWDC = (() => {
     const auto = sourcesFromPrefs(use ? prefs : null, use ? info : null);
     const pick = (own, fallback) => (own.length ? own : fallback);
     const terms = (ids, sign) => ids.map((id) => ({ id, sign }));
-    const batterySign = config.battery_power_sign === "charge_positive" ? -1 : 1;
+    const batterySign =
+      config.battery_power_sign === "charge_positive" ? -1 : 1;
     return {
       ...auto,
       gridPower: pick(terms(config.grid_power, 1), auto.gridPower),
@@ -298,7 +450,10 @@ const HWDC = (() => {
       solarPower: pick(terms(config.solar_power, 1), auto.solarPower),
       solar: pick(config.solar_energy, auto.solar),
       batterySoc: pick(config.battery_soc, auto.batterySoc),
-      batteryPower: pick(terms(config.battery_power, batterySign), auto.batteryPower),
+      batteryPower: pick(
+        terms(config.battery_power, batterySign),
+        auto.batteryPower
+      ),
       water: pick(config.water, auto.water),
       waterFlow: pick(terms(config.water_flow, 1), auto.waterFlow),
       gas: pick(config.gas, auto.gas),
@@ -306,20 +461,39 @@ const HWDC = (() => {
     };
   };
 
-  const needsCosts = (config) => SLOTS.some((k) => config[k] && config[k].mode === "cost");
+  const needsCosts = (config) =>
+    SLOTS.some((k) => config[k] && config[k].mode === "cost");
 
   // Ids whose "today" value comes from the recorder statistics.
-  const meterIds = (src, withCosts) => [...new Set([
-    ...src.gridImport, ...src.gridExport, ...src.solar, ...src.batteryIn, ...src.batteryOut,
-    ...src.water, ...src.gas, ...src.homeEnergy,
-    ...(withCosts ? [...src.gridCost, ...src.gridCompensation, ...src.waterCost, ...src.gasCost] : []),
-  ])];
+  const meterIds = (src, withCosts) => [
+    ...new Set([
+      ...src.gridImport,
+      ...src.gridExport,
+      ...src.solar,
+      ...src.batteryIn,
+      ...src.batteryOut,
+      ...src.water,
+      ...src.gas,
+      ...src.homeEnergy,
+      ...(withCosts
+        ? [
+            ...src.gridCost,
+            ...src.gridCompensation,
+            ...src.waterCost,
+            ...src.gasCost,
+          ]
+        : []),
+    ]),
+  ];
 
   // Meters of "device" slots (Energy Socket, kWh Meter) for their "today" value.
-  const slotMeterIds = (config) => [...new Set(SLOTS
-    .map((k) => config[k])
-    .filter((s) => s && s.source === "device" && s.energy)
-    .map((s) => s.energy))];
+  const slotMeterIds = (config) => [
+    ...new Set(
+      SLOTS.map((k) => config[k])
+        .filter((s) => s && s.source === "device" && s.energy)
+        .map((s) => s.energy)
+    ),
+  ];
 
   // Every entity whose state the card can show. Home Assistant sends a new hass object for any
   // change in the home; when none of these changed, the card does not need to redraw.
@@ -340,20 +514,54 @@ const HWDC = (() => {
 
   const FACTORS = {
     // "Wh/h" and "kWh/h": what a derivative helper on an energy meter reports.
-    power: { mW: 0.001, W: 1, kW: 1e3, MW: 1e6, GW: 1e9, "Wh/h": 1, "kWh/h": 1e3 },
+    power: {
+      mW: 0.001,
+      W: 1,
+      kW: 1e3,
+      MW: 1e6,
+      GW: 1e9,
+      "Wh/h": 1,
+      "kWh/h": 1e3,
+    },
     energy: {
-      mWh: 1e-6, Wh: 1e-3, kWh: 1, MWh: 1e3, GWh: 1e6, TWh: 1e9,
-      J: 1 / 3.6e6, kJ: 1 / 3600, MJ: 1 / 3.6, GJ: 1e3 / 3.6, cal: 4.184 / 3.6e6, kcal: 4.184 / 3600,
-      Mcal: 4.184 / 3.6, Gcal: 4184 / 3.6,
+      mWh: 1e-6,
+      Wh: 1e-3,
+      kWh: 1,
+      MWh: 1e3,
+      GWh: 1e6,
+      TWh: 1e9,
+      J: 1 / 3.6e6,
+      kJ: 1 / 3600,
+      MJ: 1 / 3.6,
+      GJ: 1e3 / 3.6,
+      cal: 4.184 / 3.6e6,
+      kcal: 4.184 / 3600,
+      Mcal: 4.184 / 3.6,
+      Gcal: 4184 / 3.6,
     },
     volume: {
-      mL: 1e-3, L: 1, "m³": 1e3, "ft³": 28.316846592, gal: 3.785411784, CCF: 2831.6846592,
-      MCF: 28316.846592, "fl. oz.": 0.0295735295625,
+      mL: 1e-3,
+      L: 1,
+      "m³": 1e3,
+      "ft³": 28.316846592,
+      gal: 3.785411784,
+      CCF: 2831.6846592,
+      MCF: 28316.846592,
+      "fl. oz.": 0.0295735295625,
     },
     flow: {
-      "L/min": 1, "L/h": 1 / 60, "L/s": 60, "mL/s": 0.06, "m³/h": 1000 / 60, "m³/min": 1000,
-      "m³/s": 60000, "gal/min": 3.785411784, "gal/h": 3.785411784 / 60, "gal/d": 3.785411784 / 1440,
-      "ft³/min": 28.316846592, "ft³/h": 28.316846592 / 60,
+      "L/min": 1,
+      "L/h": 1 / 60,
+      "L/s": 60,
+      "mL/s": 0.06,
+      "m³/h": 1000 / 60,
+      "m³/min": 1000,
+      "m³/s": 60000,
+      "gal/min": 3.785411784,
+      "gal/h": 3.785411784 / 60,
+      "gal/d": 3.785411784 / 1440,
+      "ft³/min": 28.316846592,
+      "ft³/h": 28.316846592 / 60,
     },
   };
   // Unit to assume when an entity has none.
@@ -368,7 +576,8 @@ const HWDC = (() => {
     return f === undefined ? null : value * f;
   };
 
-  const entityOf = (hass, id) => (hass && hass.states ? hass.states[id] : undefined);
+  const entityOf = (hass, id) =>
+    hass && hass.states ? hass.states[id] : undefined;
   const unitOf = (hass, id) => {
     const st = entityOf(hass, id);
     return st && st.attributes ? st.attributes.unit_of_measurement : undefined;
@@ -390,7 +599,8 @@ const HWDC = (() => {
   };
 
   // Gas is a volume in most countries, but some meters count it in kWh.
-  const gasKind = (hass, id) => (FACTORS.energy[unitOf(hass, id)] !== undefined ? "energy" : "volume");
+  const gasKind = (hass, id) =>
+    FACTORS.energy[unitOf(hass, id)] !== undefined ? "energy" : "volume";
 
   // ---------------------------------------------------------------- today (statistics)
 
@@ -412,32 +622,37 @@ const HWDC = (() => {
   const fetchToday = async (hass, ids, now) => {
     const result = {};
     if (!ids.length) return result;
-    const recent = (await tryWS(hass, {
-      type: "recorder/statistics_during_period",
-      start_time: new Date(now - 30 * 60 * 1000).toISOString(),
-      statistic_ids: ids,
-      period: "5minute",
-      types: ["state"],
-      units: STAT_UNITS,
-    })) || {};
-    await Promise.all(ids.map(async (id) => {
-      const r = await tryWS(hass, {
-        type: "recorder/statistic_during_period",
-        statistic_id: id,
-        calendar: { period: "day" },
-        types: ["change"],
+    const recent =
+      (await tryWS(hass, {
+        type: "recorder/statistics_during_period",
+        start_time: new Date(now - 30 * 60 * 1000).toISOString(),
+        statistic_ids: ids,
+        period: "5minute",
+        types: ["state"],
         units: STAT_UNITS,
-      });
-      const change = r && Number.isFinite(r.change) ? r.change : null;
-      // Only meter statistics (state_class total/total_increasing) have a "state" per row; a
-      // measurement sensor has mean/min/max and counts as "no statistics".
-      const rows = (Array.isArray(recent[id]) ? recent[id] : []).filter((r) => r && Number.isFinite(r.state));
-      result[id] = {
-        change,
-        lastState: rows.length ? rows[rows.length - 1].state : null,
-        hasStats: change !== null || rows.length > 0,
-      };
-    }));
+      })) || {};
+    await Promise.all(
+      ids.map(async (id) => {
+        const r = await tryWS(hass, {
+          type: "recorder/statistic_during_period",
+          statistic_id: id,
+          calendar: { period: "day" },
+          types: ["change"],
+          units: STAT_UNITS,
+        });
+        const change = r && Number.isFinite(r.change) ? r.change : null;
+        // Only meter statistics (state_class total/total_increasing) have a "state" per row; a
+        // measurement sensor has mean/min/max and counts as "no statistics".
+        const rows = (Array.isArray(recent[id]) ? recent[id] : []).filter(
+          (r) => r && Number.isFinite(r.state)
+        );
+        result[id] = {
+          change,
+          lastState: rows.length ? rows[rows.length - 1].state : null,
+          hasStats: change !== null || rows.length > 0,
+        };
+      })
+    );
     return result;
   };
 
@@ -462,13 +677,20 @@ const HWDC = (() => {
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
   const computeModel = (hass, src, today) => {
-    const power = (terms, kind) => sumOf(terms.map((t) => {
-      const v = stateValue(hass, t.id, kind || "power");
-      return v === null ? null : v * t.sign;
-    }));
-    const meters = (ids, kind) => sumOf(ids.map((id) => todayValue(hass, id, kind, today)));
-    const soc = src.batterySoc.map((id) => stateValue(hass, id, "raw")).filter((v) => v !== null);
-    const gasEnergy = src.gas.length > 0 && gasKind(hass, src.gas[0]) === "energy";
+    const power = (terms, kind) =>
+      sumOf(
+        terms.map((t) => {
+          const v = stateValue(hass, t.id, kind || "power");
+          return v === null ? null : v * t.sign;
+        })
+      );
+    const meters = (ids, kind) =>
+      sumOf(ids.map((id) => todayValue(hass, id, kind, today)));
+    const soc = src.batterySoc
+      .map((id) => stateValue(hass, id, "raw"))
+      .filter((v) => v !== null);
+    const gasEnergy =
+      src.gas.length > 0 && gasKind(hass, src.gas[0]) === "energy";
     const gasToday = meters(src.gas, gasEnergy ? "energy" : "volume");
     const gasFlow = power(src.gasFlow, "flow");
     const costOf = (ids) => meters(ids, "raw");
@@ -479,7 +701,9 @@ const HWDC = (() => {
       gridExport: meters(src.gridExport, "energy"),
       solarPower: power(src.solarPower),
       solar: meters(src.solar, "energy"),
-      batterySoc: soc.length ? soc.reduce((a, b) => a + b, 0) / soc.length : null,
+      batterySoc: soc.length
+        ? soc.reduce((a, b) => a + b, 0) / soc.length
+        : null,
       batteryPower: power(src.batteryPower),
       batteryIn: meters(src.batteryIn, "energy"),
       batteryOut: meters(src.batteryOut, "energy"),
@@ -495,19 +719,41 @@ const HWDC = (() => {
     };
     const cost = costOf(src.gridCost);
     const comp = costOf(src.gridCompensation);
-    m.gridCost = cost === null && comp === null ? null : (cost || 0) - (comp || 0);
+    m.gridCost =
+      cost === null && comp === null ? null : (cost || 0) - (comp || 0);
 
     // Electricity use of the house: what came from the grid, the sun and the battery.
-    m.consumptionNow = m.homePower !== null ? m.homePower
-      : m.gridPower === null ? null : Math.max(0, m.gridPower + (m.solarPower || 0) + (m.batteryPower || 0));
-    m.consumptionToday = m.homeEnergy !== null ? m.homeEnergy
-      : m.gridImport === null ? null
-        : Math.max(0, m.gridImport - (m.gridExport || 0) + (m.solar || 0) + (m.batteryOut || 0) - (m.batteryIn || 0));
+    m.consumptionNow =
+      m.homePower !== null
+        ? m.homePower
+        : m.gridPower === null
+          ? null
+          : Math.max(
+              0,
+              m.gridPower + (m.solarPower || 0) + (m.batteryPower || 0)
+            );
+    m.consumptionToday =
+      m.homeEnergy !== null
+        ? m.homeEnergy
+        : m.gridImport === null
+          ? null
+          : Math.max(
+              0,
+              m.gridImport -
+                (m.gridExport || 0) +
+                (m.solar || 0) +
+                (m.batteryOut || 0) -
+                (m.batteryIn || 0)
+            );
     // Self-sufficiency: the share of that use that did not come from the grid.
-    m.selfNow = m.consumptionNow > 0 && m.gridPower !== null
-      ? clamp((1 - Math.max(0, m.gridPower) / m.consumptionNow) * 100, 0, 100) : null;
-    m.selfToday = m.consumptionToday > 0 && m.gridImport !== null
-      ? clamp((1 - m.gridImport / m.consumptionToday) * 100, 0, 100) : null;
+    m.selfNow =
+      m.consumptionNow > 0 && m.gridPower !== null
+        ? clamp((1 - Math.max(0, m.gridPower) / m.consumptionNow) * 100, 0, 100)
+        : null;
+    m.selfToday =
+      m.consumptionToday > 0 && m.gridImport !== null
+        ? clamp((1 - m.gridImport / m.consumptionToday) * 100, 0, 100)
+        : null;
     return m;
   };
 
@@ -529,7 +775,10 @@ const HWDC = (() => {
     try {
       if (!dayFormatters[tz]) {
         dayFormatters[tz] = new Intl.DateTimeFormat("en-CA", {
-          timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+          timeZone: tz,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
         });
       }
       return dayFormatters[tz].format(new Date(now));
@@ -545,11 +794,16 @@ const HWDC = (() => {
     const l = (hass && hass.locale) || {};
     const lang = l.language || (hass && hass.language) || "en";
     switch (l.number_format) {
-      case "comma_decimal": return ["en-US", "en"];
-      case "decimal_comma": return ["de", "es", "it"];
-      case "space_comma": return ["fr", "sv", "cs"];
-      case "system": return undefined;
-      default: return lang;
+      case "comma_decimal":
+        return ["en-US", "en"];
+      case "decimal_comma":
+        return ["de", "es", "it"];
+      case "space_comma":
+        return ["fr", "sv", "cs"];
+      case "system":
+        return undefined;
+      default:
+        return lang;
     }
   };
 
@@ -558,7 +812,11 @@ const HWDC = (() => {
     const loc = numberLocale(hass);
     const cache = {};
     const make = (d) => {
-      const opts = { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: false };
+      const opts = {
+        minimumFractionDigits: d,
+        maximumFractionDigits: d,
+        useGrouping: false,
+      };
       try {
         return new Intl.NumberFormat(loc, opts);
       } catch {
@@ -584,21 +842,35 @@ const HWDC = (() => {
   const currencySymbol = (hass, loc) => {
     const code = (hass && hass.config && hass.config.currency) || "EUR";
     try {
-      const part = new Intl.NumberFormat(loc, { style: "currency", currency: code }).formatToParts(1).find((p) => p.type === "currency");
+      const part = new Intl.NumberFormat(loc, {
+        style: "currency",
+        currency: code,
+      })
+        .formatToParts(1)
+        .find((p) => p.type === "currency");
       return part ? part.value : code;
     } catch {
       return code;
     }
   };
 
-  const pickLang = (lang) => (String(lang || "").toLowerCase().startsWith("nl") ? "nl" : "en");
+  const pickLang = (lang) =>
+    String(lang || "")
+      .toLowerCase()
+      .startsWith("nl")
+      ? "nl"
+      : "en";
 
   const editorLang = (hass) => {
-    const fromHass = hass && ((hass.locale && hass.locale.language) || hass.language);
+    const fromHass =
+      hass && ((hass.locale && hass.locale.language) || hass.language);
     if (fromHass) return pickLang(fromHass);
     try {
-      return pickLang((typeof document !== "undefined" && document.documentElement.lang) ||
-        (typeof navigator !== "undefined" && navigator.language) || "en");
+      return pickLang(
+        (typeof document !== "undefined" && document.documentElement.lang) ||
+          (typeof navigator !== "undefined" && navigator.language) ||
+          "en"
+      );
     } catch {
       return "en";
     }
@@ -607,9 +879,16 @@ const HWDC = (() => {
   const TEXT = {
     en: {
       source: {
-        grid: "Main connection", solar: "Solar panels", battery: "Home battery", water: "Water", gas: "Gas",
-        consumption: "Electricity use", self_sufficiency: "Self-sufficient", device: "Device (socket, kWh meter)",
-        entity: "Own sensor", none: "None",
+        grid: "Main connection",
+        solar: "Solar panels",
+        battery: "Home battery",
+        water: "Water",
+        gas: "Gas",
+        consumption: "Electricity use",
+        self_sufficiency: "Self-sufficient",
+        device: "Device (socket, kWh meter)",
+        entity: "Own sensor",
+        none: "None",
       },
       mode: { now: "Now", today: "Today", auto: "Auto", cost: "Costs" },
       modeHelp: {
@@ -618,13 +897,21 @@ const HWDC = (() => {
         auto: "Switches automatically between the total of today and the current use",
         cost: "Shows today's costs from the Energy settings",
       },
-      slot: { circle_1: "Circle 1", circle_2: "Circle 2", circle_3: "Circle 3", top: "Top", middle: "Middle", bottom: "Bottom" },
+      slot: {
+        circle_1: "Circle 1",
+        circle_2: "Circle 2",
+        circle_3: "Circle 3",
+        top: "Top",
+        middle: "Middle",
+        bottom: "Bottom",
+      },
       none: "no data",
       labels: {
         source: "Show",
         mode: "Mode",
         view: "Card view",
-        show_view_switch: "Button on the card to switch between display and charts",
+        show_view_switch:
+          "Button on the card to switch between display and charts",
         charts_group: "Charts",
         charts: "Charts to show",
         chart_entities: "Own sensors as charts",
@@ -670,26 +957,39 @@ const HWDC = (() => {
         chart_color_gas: "Gas",
       },
       helpers: {
-        chart_colors: "Empty = the color of the display: a circle first, then a row, then Colors",
+        chart_colors:
+          "Empty = the color of the display: a circle first, then a row, then Colors",
         chart_color_self_sufficiency: "Empty = the solar color",
         color_background: "Pick a suggestion or type your own hex color",
-        color_background_dark: "While Home Assistant shows a dark theme; empty = same as day",
-        color_text: "Empty = automatic: white on a dark background, black on a light one",
+        color_background_dark:
+          "While Home Assistant shows a dark theme; empty = same as day",
+        color_text:
+          "Empty = automatic: white on a dark background, black on a light one",
         charts: "None selected = every chart there is data for",
         chart_entities: "For example a temperature or humidity",
         sources: "Leave empty to use the Energy settings",
         grid_power: "Positive = taking from the grid, negative = returning",
-        grid_import: "Total meter or daily meter; today's value comes from the statistics",
+        grid_import:
+          "Total meter or daily meter; today's value comes from the statistics",
         battery_power: "Used to show when the battery delivers",
-        water_flow: "Not in your Energy settings? Choose the flow sensor of your water meter",
-        gas_flow: "No flow sensor? See the README: a derivative helper makes one",
+        water_flow:
+          "Not in your Energy settings? Choose the flow sensor of your water meter",
+        gas_flow:
+          "No flow sensor? See the README: a derivative helper makes one",
         color: "Hex color; empty = the default color of this source",
         entity: "Any sensor with a number, for example a temperature",
         power: "In W or kW; negative = producing",
         energy: "Total meter in kWh; today's value comes from the statistics",
       },
-      sign: { discharge_positive: "Positive = discharging (Home Assistant standard)", charge_positive: "Positive = charging (e.g. HomeWizard Plug-In Battery)" },
-      view: { display: "Display (Usage Overview)", charts: "Charts (like the HomeWizard app)" },
+      sign: {
+        discharge_positive: "Positive = discharging (Home Assistant standard)",
+        charge_positive:
+          "Positive = charging (e.g. HomeWizard Plug-In Battery)",
+      },
+      view: {
+        display: "Display (Usage Overview)",
+        charts: "Charts (like the HomeWizard app)",
+      },
       bg: {
         display: "Black of the display #05070b (default)",
         day: "Light #f4f5f7: fits a light theme",
@@ -698,9 +998,16 @@ const HWDC = (() => {
     },
     nl: {
       source: {
-        grid: "Hoofdaansluiting", solar: "Zonnepanelen", battery: "Thuisaccu", water: "Water", gas: "Gasverbruik",
-        consumption: "Stroomverbruik", self_sufficiency: "Zelfvoorzienend", device: "Apparaat (stopcontact, kWh-meter)",
-        entity: "Eigen sensor", none: "Geen",
+        grid: "Hoofdaansluiting",
+        solar: "Zonnepanelen",
+        battery: "Thuisaccu",
+        water: "Water",
+        gas: "Gasverbruik",
+        consumption: "Stroomverbruik",
+        self_sufficiency: "Zelfvoorzienend",
+        device: "Apparaat (stopcontact, kWh-meter)",
+        entity: "Eigen sensor",
+        none: "Geen",
       },
       mode: { now: "Nu", today: "Vandaag", auto: "Auto", cost: "Kosten" },
       modeHelp: {
@@ -709,13 +1016,21 @@ const HWDC = (() => {
         auto: "Schakelt automatisch tussen het totaal van vandaag of het huidig verbruik",
         cost: "Toont de kosten van vandaag uit de Energie-instellingen",
       },
-      slot: { circle_1: "Cirkel 1", circle_2: "Cirkel 2", circle_3: "Cirkel 3", top: "Bovenaan", middle: "Midden", bottom: "Onderaan" },
+      slot: {
+        circle_1: "Cirkel 1",
+        circle_2: "Cirkel 2",
+        circle_3: "Cirkel 3",
+        top: "Bovenaan",
+        middle: "Midden",
+        bottom: "Onderaan",
+      },
       none: "geen gegevens",
       labels: {
         source: "Grafiek",
         mode: "Weergave",
         view: "Weergave van de kaart",
-        show_view_switch: "Knop op de kaart om te wisselen tussen display en grafieken",
+        show_view_switch:
+          "Knop op de kaart om te wisselen tussen display en grafieken",
         charts_group: "Grafieken",
         charts: "Grafieken om te tonen",
         chart_entities: "Eigen sensoren als grafiek",
@@ -742,7 +1057,8 @@ const HWDC = (() => {
         water_flow: "Waterdebiet",
         gas: "Gasmeter(s)",
         gas_flow: "Gasdebiet",
-        use_energy_settings: "Lege velden aanvullen uit de Energie-instellingen",
+        use_energy_settings:
+          "Lege velden aanvullen uit de Energie-instellingen",
         colors: "Kleuren",
         color_grid: "Net en stroomverbruik",
         color_delivery: "Levering (zon, teruglevering, accu)",
@@ -761,26 +1077,40 @@ const HWDC = (() => {
         chart_color_gas: "Gas",
       },
       helpers: {
-        chart_colors: "Leeg = de kleur van de display: eerst een cirkel, dan een rij, dan Kleuren",
+        chart_colors:
+          "Leeg = de kleur van de display: eerst een cirkel, dan een rij, dan Kleuren",
         chart_color_self_sufficiency: "Leeg = de kleur van de zonnepanelen",
         color_background: "Kies een voorstel of typ een eigen hex-kleur",
-        color_background_dark: "Zolang Home Assistant een donker thema toont; leeg = zelfde als overdag",
-        color_text: "Leeg = automatisch: wit op een donkere achtergrond, zwart op een lichte",
+        color_background_dark:
+          "Zolang Home Assistant een donker thema toont; leeg = zelfde als overdag",
+        color_text:
+          "Leeg = automatisch: wit op een donkere achtergrond, zwart op een lichte",
         charts: "Niets gekozen = alle grafieken waarvoor gegevens zijn",
         chart_entities: "Bijvoorbeeld een temperatuur of luchtvochtigheid",
         sources: "Leeg laten = uit de Energie-instellingen",
         grid_power: "Positief = afname van het net, negatief = teruglevering",
-        grid_import: "Totaalmeter of dagteller; de waarde van vandaag komt uit de statistieken",
+        grid_import:
+          "Totaalmeter of dagteller; de waarde van vandaag komt uit de statistieken",
         battery_power: "Bepaalt wanneer de accu levert",
-        water_flow: "Niet in je Energie-instellingen? Kies de debietsensor van je watermeter",
-        gas_flow: "Geen debietsensor? Zie de README: een afgeleide-hulpsensor maakt er een",
+        water_flow:
+          "Niet in je Energie-instellingen? Kies de debietsensor van je watermeter",
+        gas_flow:
+          "Geen debietsensor? Zie de README: een afgeleide-hulpsensor maakt er een",
         color: "Hex-kleur; leeg = de standaardkleur van deze bron",
         entity: "Elke sensor met een getal, bijvoorbeeld een temperatuur",
         power: "In W of kW; negatief = opwek",
-        energy: "Totaalmeter in kWh; de waarde van vandaag komt uit de statistieken",
+        energy:
+          "Totaalmeter in kWh; de waarde van vandaag komt uit de statistieken",
       },
-      sign: { discharge_positive: "Positief = ontladen (standaard van Home Assistant)", charge_positive: "Positief = laden (bijv. HomeWizard Plug-In Battery)" },
-      view: { display: "Display (Usage Overview)", charts: "Grafieken (zoals de HomeWizard-app)" },
+      sign: {
+        discharge_positive:
+          "Positief = ontladen (standaard van Home Assistant)",
+        charge_positive: "Positief = laden (bijv. HomeWizard Plug-In Battery)",
+      },
+      view: {
+        display: "Display (Usage Overview)",
+        charts: "Grafieken (zoals de HomeWizard-app)",
+      },
       bg: {
         display: "Zwart van het display #05070b (standaard)",
         day: "Licht #f4f5f7: past bij een licht thema",
@@ -796,21 +1126,32 @@ const HWDC = (() => {
     // home-battery-outline, fire, power-plug-outline, sun-clock-outline, thermometer,
     // water-percent, gauge
     grid: "M8.28,5.45L6.5,4.55L7.76,2H16.23L17.5,4.55L15.72,5.44L15,4H9L8.28,5.45M18.62,8H14.09L13.3,5H10.7L9.91,8H5.38L4.1,10.55L5.89,11.44L6.62,10H17.38L18.1,11.45L19.89,10.56L18.62,8M17.77,22H15.7L15.46,21.1L12,15.9L8.53,21.1L8.3,22H6.23L9.12,11H11.19L10.83,12.35L12,14.1L13.16,12.35L12.81,11H14.88L17.77,22M11.4,15L10.5,13.65L9.32,18.13L11.4,15M14.68,18.12L13.5,13.64L12.6,15L14.68,18.12Z",
-    solar: "M3.55 19.09L4.96 20.5L6.76 18.71L5.34 17.29M12 6C8.69 6 6 8.69 6 12S8.69 18 12 18 18 15.31 18 12C18 8.68 15.31 6 12 6M20 13H23V11H20M17.24 18.71L19.04 20.5L20.45 19.09L18.66 17.29M20.45 5L19.04 3.6L17.24 5.39L18.66 6.81M13 1H11V4H13M6.76 5.39L4.96 3.6L3.55 5L5.34 6.81L6.76 5.39M1 13H4V11H1M13 20H11V23H13",
-    water: "M12,3.77L11.25,4.61C11.25,4.61 9.97,6.06 8.68,7.94C7.39,9.82 6,12.07 6,14.23A6,6 0 0,0 12,20.23A6,6 0 0,0 18,14.23C18,12.07 16.61,9.82 15.32,7.94C14.03,6.06 12.75,4.61 12.75,4.61L12,3.77M12,6.9C12.44,7.42 12.84,7.85 13.68,9.07C14.89,10.83 16,13.07 16,14.23C16,16.45 14.22,18.23 12,18.23C9.78,18.23 8,16.45 8,14.23C8,13.07 9.11,10.83 10.32,9.07C11.16,7.85 11.56,7.42 12,6.9Z",
-    battery: "M15 9H16V7.5H20V9H21C21.55 9 22 9.45 22 10V21C22 21.55 21.55 22 21 22H15C14.45 22 14 21.55 14 21V10C14 9.45 14.45 9 15 9M16 11V14H20V11H16M12 5.69L7 10.19V18H12V20H5V12H2L12 3L14.78 5.5H14V7.17L13.76 7.27L12 5.69Z",
+    solar:
+      "M3.55 19.09L4.96 20.5L6.76 18.71L5.34 17.29M12 6C8.69 6 6 8.69 6 12S8.69 18 12 18 18 15.31 18 12C18 8.68 15.31 6 12 6M20 13H23V11H20M17.24 18.71L19.04 20.5L20.45 19.09L18.66 17.29M20.45 5L19.04 3.6L17.24 5.39L18.66 6.81M13 1H11V4H13M6.76 5.39L4.96 3.6L3.55 5L5.34 6.81L6.76 5.39M1 13H4V11H1M13 20H11V23H13",
+    water:
+      "M12,3.77L11.25,4.61C11.25,4.61 9.97,6.06 8.68,7.94C7.39,9.82 6,12.07 6,14.23A6,6 0 0,0 12,20.23A6,6 0 0,0 18,14.23C18,12.07 16.61,9.82 15.32,7.94C14.03,6.06 12.75,4.61 12.75,4.61L12,3.77M12,6.9C12.44,7.42 12.84,7.85 13.68,9.07C14.89,10.83 16,13.07 16,14.23C16,16.45 14.22,18.23 12,18.23C9.78,18.23 8,16.45 8,14.23C8,13.07 9.11,10.83 10.32,9.07C11.16,7.85 11.56,7.42 12,6.9Z",
+    battery:
+      "M15 9H16V7.5H20V9H21C21.55 9 22 9.45 22 10V21C22 21.55 21.55 22 21 22H15C14.45 22 14 21.55 14 21V10C14 9.45 14.45 9 15 9M16 11V14H20V11H16M12 5.69L7 10.19V18H12V20H5V12H2L12 3L14.78 5.5H14V7.17L13.76 7.27L12 5.69Z",
     gas: "M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38C16.22 9.78 15.46 9.35 14.82 8.72C13.33 7.26 13 4.85 13.95 3C13 3.23 12.17 3.75 11.46 4.32C8.87 6.4 7.85 10.07 9.07 13.22C9.11 13.32 9.15 13.42 9.15 13.55C9.15 13.77 9 13.97 8.8 14.05C8.57 14.15 8.33 14.09 8.14 13.93C8.08 13.88 8.04 13.83 8 13.76C6.87 12.33 6.69 10.28 7.45 8.64C5.78 10 4.87 12.3 5 14.47C5.06 14.97 5.12 15.47 5.29 15.97C5.43 16.57 5.7 17.17 6 17.7C7.08 19.43 8.95 20.67 10.96 20.92C13.1 21.19 15.39 20.8 17.03 19.32C18.86 17.66 19.5 15 18.56 12.72L18.43 12.46C18.22 12 17.66 11.2 17.66 11.2M14.5 17.5C14.22 17.74 13.76 18 13.4 18.1C12.28 18.5 11.16 17.94 10.5 17.28C11.69 17 12.4 16.12 12.61 15.23C12.78 14.43 12.46 13.77 12.33 13C12.21 12.26 12.23 11.63 12.5 10.94C12.69 11.32 12.89 11.7 13.13 12C13.9 13 15.11 13.44 15.37 14.8C15.41 14.94 15.43 15.08 15.43 15.23C15.46 16.05 15.1 16.95 14.5 17.5H14.5Z",
-    consumption: "M16 7V3H14V7H10V3H8V7C7 7 6 8 6 9V14.5L9.5 18V21H14.5V18L18 14.5V9C18 8 17 7 16 7M16 13.67L13.09 16.59L12.67 17H11.33L10.92 16.59L8 13.67V9.09C8 9.06 8.06 9 8.09 9H15.92C15.95 9 16 9.06 16 9.09V13.67Z",
-    self_sufficiency: "M18.1 9.32L19.65 6L15.5 5.64C16.1 6.15 16.63 6.78 17.05 7.5C17.37 8.05 17.58 8.63 17.73 9.22C17.18 9.08 16.6 9 16 9C15.86 9 15.72 9 15.58 9C14.81 7.25 13.06 6 11 6C8.24 6 6 8.24 6 11C6 13.06 7.25 14.81 9 15.58C9 15.72 9 15.86 9 16C9 19.87 12.13 23 16 23S23 19.87 23 16C23 12.87 20.94 10.21 18.1 9.32M8 11C8 9.35 9.35 8 11 8C12.08 8 13.03 8.58 13.56 9.45C11.66 10.15 10.15 11.66 9.45 13.56C8.58 13.03 8 12.08 8 11M16 21C13.24 21 11 18.76 11 16S13.24 11 16 11 21 13.24 21 16 18.76 21 16 21M16.5 16.25L19.36 17.94L18.61 19.16L15 17V12H16.5V16.25M11 4C10.16 4 9.35 4.15 8.61 4.42L11 1L13.39 4.42C12.65 4.15 11.84 4 11 4M4.95 14.5C5.37 15.24 5.91 15.86 6.5 16.37L2.36 16L4.12 12.23C4.26 13 4.53 13.78 4.95 14.5M4.11 9.79L2.34 6L6.5 5.65C5.9 6.16 5.36 6.78 4.94 7.5C4.5 8.24 4.25 9 4.11 9.79Z",
-    temperature: "M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z",
-    humidity: "M12,3.25C12,3.25 6,10 6,14C6,17.32 8.69,20 12,20A6,6 0 0,0 18,14C18,10 12,3.25 12,3.25M14.47,9.97L15.53,11.03L9.53,17.03L8.47,15.97M9.75,10A1.25,1.25 0 0,1 11,11.25A1.25,1.25 0 0,1 9.75,12.5A1.25,1.25 0 0,1 8.5,11.25A1.25,1.25 0 0,1 9.75,10M14.25,14.5A1.25,1.25 0 0,1 15.5,15.75A1.25,1.25 0 0,1 14.25,17A1.25,1.25 0 0,1 13,15.75A1.25,1.25 0 0,1 14.25,14.5Z",
-    to_charts: "M17.45,15.18L22,7.31V19L22,21H2V3H4V15.54L9.5,6L16,9.78L20.24,2.45L21.97,3.45L16.74,12.5L10.23,8.75L4.31,19H6.57L10.96,11.44L17.45,15.18Z",
-    to_display: "M21,16V4H3V16H21M21,2A2,2 0 0,1 23,4V16A2,2 0 0,1 21,18H14V20H16V22H8V20H10V18H3C1.89,18 1,17.1 1,16V4C1,2.89 1.89,2 3,2H21M5,6H14V11H5V6M15,6H19V8H15V6M19,9V14H15V9H19M5,12H9V14H5V12M10,12H14V14H10V12Z",
-    entity: "M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12C20,14.4 19,16.5 17.3,18C15.9,16.7 14,16 12,16C10,16 8.2,16.7 6.7,18C5,16.5 4,14.4 4,12A8,8 0 0,1 12,4M14,5.89C13.62,5.9 13.26,6.15 13.1,6.54L11.81,9.77L11.71,10C11,10.13 10.41,10.6 10.14,11.26C9.73,12.29 10.23,13.45 11.26,13.86C12.29,14.27 13.45,13.77 13.86,12.74C14.12,12.08 14,11.32 13.57,10.76L13.67,10.5L14.96,7.29L14.97,7.26C15.17,6.75 14.92,6.17 14.41,5.96C14.28,5.91 14.15,5.89 14,5.89M10,6A1,1 0 0,0 9,7A1,1 0 0,0 10,8A1,1 0 0,0 11,7A1,1 0 0,0 10,6M7,9A1,1 0 0,0 6,10A1,1 0 0,0 7,11A1,1 0 0,0 8,10A1,1 0 0,0 7,9M17,9A1,1 0 0,0 16,10A1,1 0 0,0 17,11A1,1 0 0,0 18,10A1,1 0 0,0 17,9Z",
+    consumption:
+      "M16 7V3H14V7H10V3H8V7C7 7 6 8 6 9V14.5L9.5 18V21H14.5V18L18 14.5V9C18 8 17 7 16 7M16 13.67L13.09 16.59L12.67 17H11.33L10.92 16.59L8 13.67V9.09C8 9.06 8.06 9 8.09 9H15.92C15.95 9 16 9.06 16 9.09V13.67Z",
+    self_sufficiency:
+      "M18.1 9.32L19.65 6L15.5 5.64C16.1 6.15 16.63 6.78 17.05 7.5C17.37 8.05 17.58 8.63 17.73 9.22C17.18 9.08 16.6 9 16 9C15.86 9 15.72 9 15.58 9C14.81 7.25 13.06 6 11 6C8.24 6 6 8.24 6 11C6 13.06 7.25 14.81 9 15.58C9 15.72 9 15.86 9 16C9 19.87 12.13 23 16 23S23 19.87 23 16C23 12.87 20.94 10.21 18.1 9.32M8 11C8 9.35 9.35 8 11 8C12.08 8 13.03 8.58 13.56 9.45C11.66 10.15 10.15 11.66 9.45 13.56C8.58 13.03 8 12.08 8 11M16 21C13.24 21 11 18.76 11 16S13.24 11 16 11 21 13.24 21 16 18.76 21 16 21M16.5 16.25L19.36 17.94L18.61 19.16L15 17V12H16.5V16.25M11 4C10.16 4 9.35 4.15 8.61 4.42L11 1L13.39 4.42C12.65 4.15 11.84 4 11 4M4.95 14.5C5.37 15.24 5.91 15.86 6.5 16.37L2.36 16L4.12 12.23C4.26 13 4.53 13.78 4.95 14.5M4.11 9.79L2.34 6L6.5 5.65C5.9 6.16 5.36 6.78 4.94 7.5C4.5 8.24 4.25 9 4.11 9.79Z",
+    temperature:
+      "M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z",
+    humidity:
+      "M12,3.25C12,3.25 6,10 6,14C6,17.32 8.69,20 12,20A6,6 0 0,0 18,14C18,10 12,3.25 12,3.25M14.47,9.97L15.53,11.03L9.53,17.03L8.47,15.97M9.75,10A1.25,1.25 0 0,1 11,11.25A1.25,1.25 0 0,1 9.75,12.5A1.25,1.25 0 0,1 8.5,11.25A1.25,1.25 0 0,1 9.75,10M14.25,14.5A1.25,1.25 0 0,1 15.5,15.75A1.25,1.25 0 0,1 14.25,17A1.25,1.25 0 0,1 13,15.75A1.25,1.25 0 0,1 14.25,14.5Z",
+    to_charts:
+      "M17.45,15.18L22,7.31V19L22,21H2V3H4V15.54L9.5,6L16,9.78L20.24,2.45L21.97,3.45L16.74,12.5L10.23,8.75L4.31,19H6.57L10.96,11.44L17.45,15.18Z",
+    to_display:
+      "M21,16V4H3V16H21M21,2A2,2 0 0,1 23,4V16A2,2 0 0,1 21,18H14V20H16V22H8V20H10V18H3C1.89,18 1,17.1 1,16V4C1,2.89 1.89,2 3,2H21M5,6H14V11H5V6M15,6H19V8H15V6M19,9V14H15V9H19M5,12H9V14H5V12M10,12H14V14H10V12Z",
+    entity:
+      "M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12C20,14.4 19,16.5 17.3,18C15.9,16.7 14,16 12,16C10,16 8.2,16.7 6.7,18C5,16.5 4,14.4 4,12A8,8 0 0,1 12,4M14,5.89C13.62,5.9 13.26,6.15 13.1,6.54L11.81,9.77L11.71,10C11,10.13 10.41,10.6 10.14,11.26C9.73,12.29 10.23,13.45 11.26,13.86C12.29,14.27 13.45,13.77 13.86,12.74C14.12,12.08 14,11.32 13.57,10.76L13.67,10.5L14.96,7.29L14.97,7.26C15.17,6.75 14.92,6.17 14.41,5.96C14.28,5.91 14.15,5.89 14,5.89M10,6A1,1 0 0,0 9,7A1,1 0 0,0 10,8A1,1 0 0,0 11,7A1,1 0 0,0 10,6M7,9A1,1 0 0,0 6,10A1,1 0 0,0 7,11A1,1 0 0,0 8,10A1,1 0 0,0 7,9M17,9A1,1 0 0,0 16,10A1,1 0 0,0 17,11A1,1 0 0,0 18,10A1,1 0 0,0 17,9Z",
   };
   const BATTERY_DELIVERY_W = 20; // below this the battery counts as idle (standby noise)
 
-  const frac = (v, goal) => (v === null || !goal ? 0 : clamp(Math.abs(v) / goal, 0, 1));
+  const frac = (v, goal) =>
+    v === null || !goal ? 0 : clamp(Math.abs(v) / goal, 0, 1);
 
   // What one circle or row shows: value, how to format it, arc/bar fraction, colour and direction.
   // Taking energy: clockwise. Delivering (export, solar, battery discharging, self-sufficiency):
@@ -822,7 +1163,14 @@ const HWDC = (() => {
     const delivery = { color: c.color_delivery, ccw: true };
     const negative = { ...delivery, green: true };
     const make = (value, type, goalMode, color, extra) => ({
-      value, type, frac: frac(value, slot[GOAL_KEY[goalMode]]), color, ccw: false, green: false, icon: slot.source, ...extra,
+      value,
+      type,
+      frac: frac(value, slot[GOAL_KEY[goalMode]]),
+      color,
+      ccw: false,
+      green: false,
+      icon: slot.source,
+      ...extra,
     });
     const own = (dflt) => slot.color || dflt;
     const flowing = (v) => v !== null && v > 0;
@@ -831,32 +1179,61 @@ const HWDC = (() => {
         const color = own(c.color_grid);
         if (slot.mode === "now") {
           const v = m.gridPower;
-          return make(v, "power", "now", color, v !== null && v < 0 ? negative : {});
+          return make(
+            v,
+            "power",
+            "now",
+            color,
+            v !== null && v < 0 ? negative : {}
+          );
         }
         if (slot.mode === "cost") {
           const v = m.gridCost;
-          return make(v, "money", "cost", color, v !== null && v < 0 ? negative : {});
+          return make(
+            v,
+            "money",
+            "cost",
+            color,
+            v !== null && v < 0 ? negative : {}
+          );
         }
-        if (circle && m.gridPower !== null && m.gridPower < 0) return make(m.gridExport, "energy", "today", color, negative);
+        if (circle && m.gridPower !== null && m.gridPower < 0)
+          return make(m.gridExport, "energy", "today", color, negative);
         return make(m.gridImport, "energy", "today", color);
       }
       case "solar": {
         const d = { ...delivery, color: own(c.color_delivery) };
-        const useNow = slot.mode === "now" || (slot.mode === "auto" && flowing(m.solarPower));
-        return useNow ? make(m.solarPower, "power", "now", d.color, d) : make(m.solar, "energy", "today", d.color, d);
+        const useNow =
+          slot.mode === "now" ||
+          (slot.mode === "auto" && flowing(m.solarPower));
+        return useNow
+          ? make(m.solarPower, "power", "now", d.color, d)
+          : make(m.solar, "energy", "today", d.color, d);
       }
       case "device": {
         // Energy Socket, kWh Meter and the like: negative power = producing (delivery).
         const color = own(c.color_grid);
         const power = slot.power ? stateValue(hass, slot.power, "power") : null;
-        const useNow = slot.mode === "now" || (slot.mode === "auto" && power !== null && power !== 0);
-        if (useNow) return make(power, "power", "now", color, { icon: "consumption", ...(power !== null && power < 0 ? negative : {}) });
-        const v = slot.energy ? todayValue(hass, slot.energy, "energy", today) : null;
+        const useNow =
+          slot.mode === "now" ||
+          (slot.mode === "auto" && power !== null && power !== 0);
+        if (useNow)
+          return make(power, "power", "now", color, {
+            icon: "consumption",
+            ...(power !== null && power < 0 ? negative : {}),
+          });
+        const v = slot.energy
+          ? todayValue(hass, slot.energy, "energy", today)
+          : null;
         return make(v, "energy", "today", color, { icon: "consumption" });
       }
       case "battery": {
-        const discharging = m.batteryPower !== null && m.batteryPower > BATTERY_DELIVERY_W;
-        return make(m.batterySoc, "percent", "now", own(c.color_battery), { unitColor: c.color_text, ...(discharging ? delivery : {}) });
+        const discharging =
+          m.batteryPower !== null && m.batteryPower > BATTERY_DELIVERY_W;
+        return make(m.batterySoc, "percent", "now", own(c.color_battery), {
+          unitColor: c.color_text,
+          ...(discharging ? delivery : {}),
+        });
       }
       case "water":
       case "gas": {
@@ -864,8 +1241,10 @@ const HWDC = (() => {
         const color = own(water ? c.color_water : c.color_gas);
         const now = water ? m.waterFlow : m.gasFlow;
         const amount = water ? m.water : m.gas;
-        if (slot.mode === "cost") return make(water ? m.waterCost : m.gasCost, "money", "cost", color);
-        const useNow = slot.mode === "now" || (slot.mode === "auto" && flowing(now));
+        if (slot.mode === "cost")
+          return make(water ? m.waterCost : m.gasCost, "money", "cost", color);
+        const useNow =
+          slot.mode === "now" || (slot.mode === "auto" && flowing(now));
         if (useNow) return make(now, water ? "flow" : "gasflow", "now", color);
         const type = water ? "volume" : m.gasUnit === "kWh" ? "energy" : "m3";
         return make(amount, type, "today", color);
@@ -876,12 +1255,21 @@ const HWDC = (() => {
           : make(m.consumptionToday, "energy", "today", own(c.color_grid));
       case "self_sufficiency": {
         const d = { ...delivery, color: own(c.color_delivery) };
-        return make(slot.mode === "now" ? m.selfNow : m.selfToday, "percent", slot.mode, d.color, d);
+        return make(
+          slot.mode === "now" ? m.selfNow : m.selfToday,
+          "percent",
+          slot.mode,
+          d.color,
+          d
+        );
       }
       case "entity": {
         const id = slot.entity;
         const v = id ? stateValue(hass, id, "raw") : null;
-        return make(v, "entity", "now", own(c.color_battery), { unit: unitOf(hass, id) || "", icon: entityIcon(hass, id) });
+        return make(v, "entity", "now", own(c.color_battery), {
+          unit: unitOf(hass, id) || "",
+          icon: entityIcon(hass, id),
+        });
       }
       default:
         return null;
@@ -891,12 +1279,15 @@ const HWDC = (() => {
   // Number and unit for a view. Circles switch to kW from 10 kW, rows from 1 kW.
   const formatView = (view, fmt, circle) => {
     const v = view.value;
-    if (v === null) return { text: "–", int: "–", frac: "", unit: view.unit || "" };
+    if (v === null)
+      return { text: "–", int: "–", frac: "", unit: view.unit || "" };
     const out = (f, unit) => ({ ...f, unit });
     const abs = Math.abs(v);
     switch (view.type) {
       case "power":
-        return abs >= (circle ? 10000 : 1000) ? out(fmt(v / 1000, 1), "kW") : out(fmt(v, 0), "W");
+        return abs >= (circle ? 10000 : 1000)
+          ? out(fmt(v / 1000, 1), "kW")
+          : out(fmt(v, 0), "W");
       case "energy":
         return out(fmt(v, circle && abs >= 100 ? 0 : 1), "kWh");
       case "volume":
@@ -912,13 +1303,17 @@ const HWDC = (() => {
       case "money":
         return out(fmt(v, 2), fmt.currency || "€");
       default:
-        return out(fmt(v, Number.isInteger(v) ? 0 : abs < 100 ? 1 : 0), view.unit || "");
+        return out(
+          fmt(v, Number.isInteger(v) ? 0 : abs < 100 ? 1 : 0),
+          view.unit || ""
+        );
     }
   };
 
   // ---------------------------------------------------------------- SVG
 
-  const FONT = 'font-family="Roboto, Noto, Helvetica, Arial, sans-serif" font-weight="700"';
+  const FONT =
+    'font-family="Roboto, Noto, Helvetica, Arial, sans-serif" font-weight="700"';
 
   // Ring: dimmed track plus an arc from 12 o'clock with round caps (a small value is a dot).
   // Counterclockwise = the clockwise arc mirrored in the vertical axis.
@@ -944,13 +1339,18 @@ const HWDC = (() => {
     return s;
   };
 
-  const icon = (x, y, path, color) => `<path transform="translate(${x} ${y}) scale(1.9)" fill="${color}" d="${path}"/>`;
+  const icon = (x, y, path, color) =>
+    `<path transform="translate(${x} ${y}) scale(1.9)" fill="${color}" d="${path}"/>`;
 
   const text = (x, y, size, color, content, anchor, opacity) =>
     `<text x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ""} ${FONT} font-size="${size}" fill="${color}"${opacity ? ` fill-opacity="${opacity}"` : ""}>${content}</text>`;
 
   // Characters that are not plain digits get escaped, in case an entity unit contains "<" or "&".
-  const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+  const esc = (s) =>
+    String(s).replace(
+      /[&<>"]/g,
+      (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]
+    );
 
   const GEOMETRY = {
     circle_1: { cx: 200, cy: 205, r: 140, w: 24, big: true },
@@ -969,11 +1369,25 @@ const HWDC = (() => {
     if (g.big) {
       const size = len >= 6 ? 64 : len >= 5 ? 76 : 88;
       s += text(g.cx, g.cy + 27, size, numberColor, esc(f.text), "middle");
-      s += text(g.cx, g.cy + 77, 34, view.unitColor || view.color, esc(f.unit), "middle");
+      s += text(
+        g.cx,
+        g.cy + 77,
+        34,
+        view.unitColor || view.color,
+        esc(f.unit),
+        "middle"
+      );
     } else {
       const size = len >= 6 ? 38 : len >= 5 ? 44 : len >= 4 ? 52 : 58;
       s += text(g.cx, g.cy + 10, size, numberColor, esc(f.text), "middle");
-      s += text(g.cx, g.cy + 44, 26, view.unitColor || view.color, esc(f.unit), "middle");
+      s += text(
+        g.cx,
+        g.cy + 44,
+        26,
+        view.unitColor || view.color,
+        esc(f.unit),
+        "middle"
+      );
     }
     return s;
   };
@@ -990,10 +1404,19 @@ const HWDC = (() => {
     } else {
       // Shrink the big digits when number and unit would run past the end of the bar (x = 780).
       const unitWidth = Math.max(f.unit.length, f.frac.length * 1.3) * 22 * 0.6;
-      const size = Math.min(52, Math.floor((780 - 650 - 6 - unitWidth) / (Math.max(f.int.length, 1) * 0.57)));
+      const size = Math.min(
+        52,
+        Math.floor(
+          (780 - 650 - 6 - unitWidth) / (Math.max(f.int.length, 1) * 0.57)
+        )
+      );
       const xe = Math.round(650 + f.int.length * size * 0.57 + 6);
-      s += text(650, y, size, c.color_text, esc(f.int)) + text(xe, y - 24, 22, c.color_text, esc(f.unit)) +
-        (f.frac ? text(xe, y, 24, c.color_text, esc(f.frac), undefined, 0.6) : "");
+      s +=
+        text(650, y, size, c.color_text, esc(f.int)) +
+        text(xe, y - 24, 22, c.color_text, esc(f.unit)) +
+        (f.frac
+          ? text(xe, y, 24, c.color_text, esc(f.frac), undefined, 0.6)
+          : "");
     }
     return s + bar(596, y + 32, 184, view.frac, view.color, view.ccw);
   };
@@ -1001,7 +1424,12 @@ const HWDC = (() => {
   const renderSvg = (m, config, fmt, lang, hass, today) => {
     const T = TEXT[pickLang(lang)];
     const eff = effectiveColors(config, hass);
-    const c = { ...config, ...eff.accents, color_background: eff.background, color_text: eff.text };
+    const c = {
+      ...config,
+      ...eff.accents,
+      color_background: eff.background,
+      color_text: eff.text,
+    };
     const parts = [];
     const spoken = [];
     for (const key of SLOTS) {
@@ -1010,23 +1438,40 @@ const HWDC = (() => {
       const circle = key.startsWith("circle");
       if (!view) continue;
       const f = formatView(view, fmt, circle);
-      parts.push(circle ? renderCircle(GEOMETRY[key], view, f, c) : renderRow(GEOMETRY[key], view, f, c));
-      const modeText = SOURCES[slot.source].modes.length > 1 ? ` ${T.mode[slot.mode].toLowerCase()}` : "";
-      spoken.push(`${T.source[slot.source]}${modeText} ${view.value === null ? T.none : `${f.text} ${f.unit}`}`.trim());
+      parts.push(
+        circle
+          ? renderCircle(GEOMETRY[key], view, f, c)
+          : renderRow(GEOMETRY[key], view, f, c)
+      );
+      const modeText =
+        SOURCES[slot.source].modes.length > 1
+          ? ` ${T.mode[slot.mode].toLowerCase()}`
+          : "";
+      spoken.push(
+        `${T.source[slot.source]}${modeText} ${view.value === null ? T.none : `${f.text} ${f.unit}`}`.trim()
+      );
     }
     // Under the big ring, when it shows the main connection: "↓ taken ↑ returned" today on one
     // line with "kWh" below, like the display.
     if (c.circle_1.source === "grid") {
       const segs = [];
-      if (m.gridImport !== null) segs.push(`<tspan fill="${c.color_grid}">↓</tspan>${esc(fmt(m.gridImport, 1).text)}`);
-      if (m.gridExport !== null) segs.push(`<tspan fill="${c.color_delivery}"${segs.length ? ' dx="16"' : ""}>↑</tspan>${esc(fmt(m.gridExport, 1).text)}`);
+      if (m.gridImport !== null)
+        segs.push(
+          `<tspan fill="${c.color_grid}">↓</tspan>${esc(fmt(m.gridImport, 1).text)}`
+        );
+      if (m.gridExport !== null)
+        segs.push(
+          `<tspan fill="${c.color_delivery}"${segs.length ? ' dx="16"' : ""}>↑</tspan>${esc(fmt(m.gridExport, 1).text)}`
+        );
       if (segs.length) {
         parts.push(text(200, 410, 30, c.color_text, segs.join(""), "middle"));
         parts.push(text(200, 440, 22, c.color_text, "kWh", "middle"));
       }
     }
-    return `<svg viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(spoken.join(", "))}">` +
-      `<rect width="800" height="480" fill="${c.color_background}"/>${parts.join("")}</svg>`;
+    return (
+      `<svg viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(spoken.join(", "))}">` +
+      `<rect width="800" height="480" fill="${c.color_background}"/>${parts.join("")}</svg>`
+    );
   };
 
   // ---------------------------------------------------------------- charts view
@@ -1034,27 +1479,64 @@ const HWDC = (() => {
   const CHART_TEXT = {
     en: {
       title: {
-        water: "Water", gas: "Gas", grid: "Main connection", solar: "Solar panels", consumption: "Electricity use",
-        self_sufficiency: "Self-sufficient", standby: "Standby use", battery: "Home battery",
+        water: "Water",
+        gas: "Gas",
+        grid: "Main connection",
+        solar: "Solar panels",
+        consumption: "Electricity use",
+        self_sufficiency: "Self-sufficient",
+        standby: "Standby use",
+        battery: "Home battery",
       },
       period: { day: "Day", week: "Week", month: "Month", year: "Year" },
-      today: "Today", yesterday: "Yesterday", week: "Week", none: "No data", loading: "Loading…",
-      prev: "Previous period", next: "Next period", charts: "Charts", error: "The card could not be drawn:",
+      today: "Today",
+      yesterday: "Yesterday",
+      week: "Week",
+      none: "No data",
+      loading: "Loading…",
+      prev: "Previous period",
+      next: "Next period",
+      charts: "Charts",
+      error: "The card could not be drawn:",
     },
     nl: {
       title: {
-        water: "Water", gas: "Gasverbruik", grid: "Hoofdaansluiting", solar: "Zonnepanelen", consumption: "Stroomverbruik",
-        self_sufficiency: "Zelfvoorzienend", standby: "Standby-verbruik", battery: "Thuisaccu",
+        water: "Water",
+        gas: "Gasverbruik",
+        grid: "Hoofdaansluiting",
+        solar: "Zonnepanelen",
+        consumption: "Stroomverbruik",
+        self_sufficiency: "Zelfvoorzienend",
+        standby: "Standby-verbruik",
+        battery: "Thuisaccu",
       },
       period: { day: "Dag", week: "Week", month: "Maand", year: "Jaar" },
-      today: "Vandaag", yesterday: "Gisteren", week: "Week", none: "Geen gegevens", loading: "Laden…",
-      prev: "Vorige periode", next: "Volgende periode", charts: "Grafieken", error: "De kaart kon niet getekend worden:",
+      today: "Vandaag",
+      yesterday: "Gisteren",
+      week: "Week",
+      none: "Geen gegevens",
+      loading: "Laden…",
+      prev: "Vorige periode",
+      next: "Volgende periode",
+      charts: "Grafieken",
+      error: "De kaart kon niet getekend worden:",
     },
   };
-  const STAT_PERIOD = { day: "5minute", week: "hour", month: "day", year: "month" };
+  const STAT_PERIOD = {
+    day: "5minute",
+    week: "hour",
+    month: "day",
+    year: "month",
+  };
   const CHART_ICON = {
-    water: "water", gas: "gas", grid: "grid", solar: "solar", consumption: "consumption",
-    self_sufficiency: "self_sufficiency", standby: "consumption", battery: "battery",
+    water: "water",
+    gas: "gas",
+    grid: "grid",
+    solar: "solar",
+    consumption: "consumption",
+    self_sufficiency: "self_sufficiency",
+    standby: "consumption",
+    battery: "battery",
   };
 
   // Date parts of moment t in time zone tz (weekday 0 = Monday).
@@ -1063,25 +1545,45 @@ const HWDC = (() => {
     const key = tz || "UTC";
     if (!tzFormatters[key]) {
       const opts = {
-        hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric",
-        hour: "numeric", minute: "numeric", second: "numeric", weekday: "short",
+        hourCycle: "h23",
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+        weekday: "short",
       };
       try {
-        tzFormatters[key] = new Intl.DateTimeFormat("en-US", { ...opts, timeZone: key });
+        tzFormatters[key] = new Intl.DateTimeFormat("en-US", {
+          ...opts,
+          timeZone: key,
+        });
       } catch {
-        tzFormatters[key] = new Intl.DateTimeFormat("en-US", { ...opts, timeZone: "UTC" });
+        tzFormatters[key] = new Intl.DateTimeFormat("en-US", {
+          ...opts,
+          timeZone: "UTC",
+        });
       }
     }
     const p = {};
-    for (const part of tzFormatters[key].formatToParts(new Date(t))) p[part.type] = part.value;
+    for (const part of tzFormatters[key].formatToParts(new Date(t)))
+      p[part.type] = part.value;
     return {
-      y: Number(p.year), m: Number(p.month), d: Number(p.day), h: Number(p.hour) % 24,
-      mi: Number(p.minute), s: Number(p.second), wd: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(p.weekday),
+      y: Number(p.year),
+      m: Number(p.month),
+      d: Number(p.day),
+      h: Number(p.hour) % 24,
+      mi: Number(p.minute),
+      s: Number(p.second),
+      wd: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(p.weekday),
     };
   };
   const tzOffset = (t, tz) => {
     const p = tzParts(t, tz);
-    return Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi, p.s) - Math.floor(t / 1000) * 1000;
+    return (
+      Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi, p.s) - Math.floor(t / 1000) * 1000
+    );
   };
   // Moment of local midnight y-m-d in tz. Month and day may overflow, like Date.UTC. Correcting
   // twice also gets the days of a clock change right.
@@ -1118,7 +1620,8 @@ const HWDC = (() => {
     } else {
       start = zonedMidnight(p.y - offset, 1, 1, tz);
       end = zonedMidnight(p.y - offset + 1, 1, 1, tz);
-      for (let i = 0; i < 12; i += 1) buckets.push(zonedMidnight(p.y - offset, 1 + i, 1, tz));
+      for (let i = 0; i < 12; i += 1)
+        buckets.push(zonedMidnight(p.y - offset, 1 + i, 1, tz));
     }
     if (period === "day" || period === "week") {
       const step = sp === "5minute" ? 300000 : 3600000;
@@ -1127,26 +1630,43 @@ const HWDC = (() => {
     return { period, offset, start, end, buckets, statPeriod: sp, now };
   };
 
-  const bucketHours = (range, i) => ((range.buckets[i + 1] !== undefined ? range.buckets[i + 1] : range.end) - range.buckets[i]) / 3600000;
+  const bucketHours = (range, i) =>
+    ((range.buckets[i + 1] !== undefined ? range.buckets[i + 1] : range.end) -
+      range.buckets[i]) /
+    3600000;
 
   // Statistics for a period: "change" for meters and costs, "mean" for state of charge and own
   // sensors. Short-term statistics are kept about ten days; an older day falls back to hours.
   const fetchSeries = async (hass, range, changeIds, meanIds) => {
-    const call = async (r, ids, types, units) => (ids.length ? (await tryWS(hass, {
-      type: "recorder/statistics_during_period",
-      start_time: new Date(r.start).toISOString(),
-      end_time: new Date(r.end).toISOString(),
-      statistic_ids: ids,
-      period: r.statPeriod,
-      types,
-      units,
-    })) || {} : {});
+    const call = async (r, ids, types, units) =>
+      ids.length
+        ? (await tryWS(hass, {
+            type: "recorder/statistics_during_period",
+            start_time: new Date(r.start).toISOString(),
+            end_time: new Date(r.end).toISOString(),
+            statistic_ids: ids,
+            period: r.statPeriod,
+            types,
+            units,
+          })) || {}
+        : {};
     // Meters and averages in parallel: two requests, one wait.
-    const both = (r) => Promise.all([call(r, changeIds, ["change"], STAT_UNITS), call(r, meanIds, ["mean"], { power: "W" })]);
+    const both = (r) =>
+      Promise.all([
+        call(r, changeIds, ["change"], STAT_UNITS),
+        call(r, meanIds, ["mean"], { power: "W" }),
+      ]);
     let r = range;
     let [change, mean] = await both(r);
-    const nothing = (o) => Object.values(o).every((rows) => !rows || !rows.length);
-    if (r.period === "day" && r.statPeriod === "5minute" && nothing(change) && nothing(mean) && (changeIds.length || meanIds.length)) {
+    const nothing = (o) =>
+      Object.values(o).every((rows) => !rows || !rows.length);
+    if (
+      r.period === "day" &&
+      r.statPeriod === "5minute" &&
+      nothing(change) &&
+      nothing(mean) &&
+      (changeIds.length || meanIds.length)
+    ) {
       r = { ...range, statPeriod: "hour", buckets: [] };
       for (let t = range.start; t < range.end; t += 3600000) r.buckets.push(t);
       [change, mean] = await both(r);
@@ -1159,7 +1679,8 @@ const HWDC = (() => {
     const index = new Map(buckets.map((t, i) => [t, i]));
     const out = new Array(buckets.length).fill(null);
     for (const row of rows || []) {
-      const t = typeof row.start === "number" ? row.start : Date.parse(row.start);
+      const t =
+        typeof row.start === "number" ? row.start : Date.parse(row.start);
       const i = index.get(t);
       if (i !== undefined && Number.isFinite(row[field])) out[i] = row[field];
     }
@@ -1167,7 +1688,10 @@ const HWDC = (() => {
   };
   const addSeries = (list, n) => {
     const out = new Array(n).fill(null);
-    for (const s of list) s.forEach((v, i) => { if (v !== null) out[i] = (out[i] === null ? 0 : out[i]) + v; });
+    for (const s of list)
+      s.forEach((v, i) => {
+        if (v !== null) out[i] = (out[i] === null ? 0 : out[i]) + v;
+      });
     return out;
   };
   const total = (s) => sumOf(s);
@@ -1185,13 +1709,18 @@ const HWDC = (() => {
       grid: src.gridImport.length > 0,
       solar: src.solar.length > 0,
       consumption: src.gridImport.length > 0,
-      self_sufficiency: src.gridImport.length > 0 && (src.solar.length > 0 || src.batteryOut.length > 0),
+      self_sufficiency:
+        src.gridImport.length > 0 &&
+        (src.solar.length > 0 || src.batteryOut.length > 0),
       standby: src.gridImport.length > 0,
       battery: src.batterySoc.length > 0 || src.batteryOut.length > 0,
     };
-    const keys = config.charts.length ? config.charts : CHARTS.filter((k) => has[k]);
+    const keys = config.charts.length
+      ? config.charts
+      : CHARTS.filter((k) => has[k]);
     const list = keys.filter((k) => k !== "battery").map((k) => ({ key: k }));
-    for (const entity of config.chart_entities) list.push({ key: "entity", entity });
+    for (const entity of config.chart_entities)
+      list.push({ key: "entity", entity });
     if (keys.includes("battery")) list.push({ key: "battery" });
     return list;
   };
@@ -1203,10 +1732,23 @@ const HWDC = (() => {
     for (const ch of charts) {
       if (ch.key === "water") add(change, [...src.water, ...src.waterCost]);
       if (ch.key === "gas") add(change, [...src.gas, ...src.gasCost]);
-      if (ch.key === "grid") add(change, [...src.gridImport, ...src.gridExport, ...src.gridCost, ...src.gridCompensation]);
+      if (ch.key === "grid")
+        add(change, [
+          ...src.gridImport,
+          ...src.gridExport,
+          ...src.gridCost,
+          ...src.gridCompensation,
+        ]);
       if (ch.key === "solar") add(change, src.solar);
       if (["consumption", "self_sufficiency", "standby"].includes(ch.key)) {
-        add(change, [...src.gridImport, ...src.gridExport, ...src.solar, ...src.batteryIn, ...src.batteryOut, ...src.homeEnergy]);
+        add(change, [
+          ...src.gridImport,
+          ...src.gridExport,
+          ...src.solar,
+          ...src.batteryIn,
+          ...src.batteryOut,
+          ...src.homeEnergy,
+        ]);
       }
       if (ch.key === "battery") {
         add(change, [...src.batteryIn, ...src.batteryOut]);
@@ -1224,7 +1766,8 @@ const HWDC = (() => {
     for (const key of SLOTS) {
       const slot = c[key];
       if (!slot || !slot.color) continue;
-      const k = slot.source === "entity" ? `entity:${slot.entity}` : slot.source;
+      const k =
+        slot.source === "entity" ? `entity:${slot.entity}` : slot.source;
       if (!(k in out)) out[k] = slot.color;
     }
     return out;
@@ -1235,10 +1778,16 @@ const HWDC = (() => {
   const chartData = (chart, data, src, c, hass) => {
     const range = data.range;
     const n = range.buckets.length;
-    const ch = (ids) => addSeries(ids.map((id) => seriesOf(data.change[id], range.buckets, "change")), n);
+    const ch = (ids) =>
+      addSeries(
+        ids.map((id) => seriesOf(data.change[id], range.buckets, "change")),
+        n
+      );
     const dayView = range.period === "day";
-    const toPower = (s) => s.map((v, i) => (v === null ? null : (v / bucketHours(range, i)) * 1000));
-    const energy = (s) => (dayView ? { values: toPower(s), unit: "W" } : { values: s, unit: "kWh" });
+    const toPower = (s) =>
+      s.map((v, i) => (v === null ? null : (v / bucketHours(range, i)) * 1000));
+    const energy = (s) =>
+      dayView ? { values: toPower(s), unit: "W" } : { values: s, unit: "kWh" };
     const cost = (plus, minus) => {
       const a = total(ch(plus));
       const b = total(ch(minus || []));
@@ -1251,8 +1800,14 @@ const HWDC = (() => {
       if (src.homeEnergy.length) return ch(src.homeEnergy);
       const bin = ch(src.batteryIn);
       const bout = ch(src.batteryOut);
-      return imp.map((v, i) => (v === null ? null
-        : Math.max(0, v - (exp[i] || 0) + (sol[i] || 0) + (bout[i] || 0) - (bin[i] || 0))));
+      return imp.map((v, i) =>
+        v === null
+          ? null
+          : Math.max(
+              0,
+              v - (exp[i] || 0) + (sol[i] || 0) + (bout[i] || 0) - (bin[i] || 0)
+            )
+      );
     };
     const base = { key: chart.key, icon: CHART_ICON[chart.key], cost: null };
     // An own chart colour first. Else the colour of the display: a colour set on a circle or
@@ -1267,100 +1822,270 @@ const HWDC = (() => {
       delivery: pick("delivery", c.color_delivery),
       solar: pick("solar", slotCol.solar || c.color_delivery),
       consumption: pick("consumption", slotCol.consumption || c.color_grid),
-      self: c.chart_color_self_sufficiency || c.chart_color_solar || slotCol.self_sufficiency || slotCol.solar || c.color_delivery,
+      self:
+        c.chart_color_self_sufficiency ||
+        c.chart_color_solar ||
+        slotCol.self_sufficiency ||
+        slotCol.solar ||
+        c.color_delivery,
       battery: pick("battery", slotCol.battery || c.color_battery),
     };
     switch (chart.key) {
       case "water": {
         const w = ch(src.water);
-        return { ...base, kind: "bars", unit: "L", decimals: 0, series: [{ values: w, color: col.water, arrow: "↓" }],
-          header: [{ arrow: "↓", value: total(w), unit: "L", decimals: 0, color: col.water }], cost: cost(src.waterCost) };
+        return {
+          ...base,
+          kind: "bars",
+          unit: "L",
+          decimals: 0,
+          series: [{ values: w, color: col.water, arrow: "↓" }],
+          header: [
+            {
+              arrow: "↓",
+              value: total(w),
+              unit: "L",
+              decimals: 0,
+              color: col.water,
+            },
+          ],
+          cost: cost(src.waterCost),
+        };
       }
       case "gas": {
-        const energyGas = src.gas.length > 0 && gasKind(hass, src.gas[0]) === "energy";
-        const g = ch(src.gas).map((v) => (v === null ? null : energyGas ? v : v / 1000));
+        const energyGas =
+          src.gas.length > 0 && gasKind(hass, src.gas[0]) === "energy";
+        const g = ch(src.gas).map((v) =>
+          v === null ? null : energyGas ? v : v / 1000
+        );
         const unit = energyGas ? "kWh" : "m³";
-        return { ...base, kind: "bars", unit, decimals: 2, series: [{ values: g, color: col.gas, arrow: "↓" }],
-          header: [{ arrow: "↓", value: total(g), unit, decimals: 2, color: col.gas }], cost: cost(src.gasCost) };
+        return {
+          ...base,
+          kind: "bars",
+          unit,
+          decimals: 2,
+          series: [{ values: g, color: col.gas, arrow: "↓" }],
+          header: [
+            { arrow: "↓", value: total(g), unit, decimals: 2, color: col.gas },
+          ],
+          cost: cost(src.gasCost),
+        };
       }
       case "grid": {
         const a = energy(imp);
         const b = energy(exp);
-        return { ...base, kind: dayView ? "area" : "bars", unit: a.unit, decimals: dayView ? 0 : 2,
-          series: [{ values: b.values, color: col.delivery, arrow: "↑" }, { values: a.values, color: col.grid, arrow: "↓" }],
-          header: [
-            { arrow: "↓", value: total(imp), unit: "kWh", decimals: 1, color: col.grid },
-            { arrow: "↑", value: total(exp), unit: "kWh", decimals: 1, color: col.delivery },
+        return {
+          ...base,
+          kind: dayView ? "area" : "bars",
+          unit: a.unit,
+          decimals: dayView ? 0 : 2,
+          series: [
+            { values: b.values, color: col.delivery, arrow: "↑" },
+            { values: a.values, color: col.grid, arrow: "↓" },
           ],
-          cost: cost(src.gridCost, src.gridCompensation) };
+          header: [
+            {
+              arrow: "↓",
+              value: total(imp),
+              unit: "kWh",
+              decimals: 1,
+              color: col.grid,
+            },
+            {
+              arrow: "↑",
+              value: total(exp),
+              unit: "kWh",
+              decimals: 1,
+              color: col.delivery,
+            },
+          ],
+          cost: cost(src.gridCost, src.gridCompensation),
+        };
       }
       case "solar": {
         const s = energy(sol);
-        return { ...base, kind: dayView ? "area" : "bars", unit: s.unit, decimals: dayView ? 0 : 2,
+        return {
+          ...base,
+          kind: dayView ? "area" : "bars",
+          unit: s.unit,
+          decimals: dayView ? 0 : 2,
           series: [{ values: s.values, color: col.solar, arrow: "↑" }],
-          header: [{ arrow: "↑", value: total(sol), unit: "kWh", decimals: 1, color: col.solar }] };
+          header: [
+            {
+              arrow: "↑",
+              value: total(sol),
+              unit: "kWh",
+              decimals: 1,
+              color: col.solar,
+            },
+          ],
+        };
       }
       case "consumption": {
         const u = consumption();
         const e = energy(u);
-        return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
+        return {
+          ...base,
+          kind: dayView ? "area" : "bars",
+          unit: e.unit,
+          decimals: dayView ? 0 : 2,
           series: [{ values: e.values, color: col.consumption, arrow: "↓" }],
-          header: [{ arrow: "↓", value: total(u), unit: "kWh", decimals: 1, color: col.consumption }] };
+          header: [
+            {
+              arrow: "↓",
+              value: total(u),
+              unit: "kWh",
+              decimals: 1,
+              color: col.consumption,
+            },
+          ],
+        };
       }
       case "self_sufficiency": {
         const u = consumption();
-        const ownEnergy = u.map((v, i) => (v === null ? null : Math.max(0, v - (imp[i] || 0))));
+        const ownEnergy = u.map((v, i) =>
+          v === null ? null : Math.max(0, v - (imp[i] || 0))
+        );
         const e = energy(u);
         const o = energy(ownEnergy);
-        return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
+        return {
+          ...base,
+          kind: dayView ? "area" : "bars",
+          unit: e.unit,
+          decimals: dayView ? 0 : 2,
           // Own energy (solar, battery) in the solar colour, like on the display.
-          series: [{ values: e.values, color: col.consumption, arrow: "↓" }, { values: o.values, color: col.self, arrow: "⇅" }],
+          series: [
+            { values: e.values, color: col.consumption, arrow: "↓" },
+            { values: o.values, color: col.self, arrow: "⇅" },
+          ],
           header: [
-            { arrow: "⇅", value: total(ownEnergy), unit: "", decimals: 1, color: col.self },
-            { arrow: "↓", value: total(imp), unit: "", decimals: 1, color: col.grid },
-            { arrow: "↑", value: total(exp), unit: "kWh", decimals: 1, color: col.delivery },
-          ] };
+            {
+              arrow: "⇅",
+              value: total(ownEnergy),
+              unit: "",
+              decimals: 1,
+              color: col.self,
+            },
+            {
+              arrow: "↓",
+              value: total(imp),
+              unit: "",
+              decimals: 1,
+              color: col.grid,
+            },
+            {
+              arrow: "↑",
+              value: total(exp),
+              unit: "kWh",
+              decimals: 1,
+              color: col.delivery,
+            },
+          ],
+        };
       }
       case "standby": {
         // Standby: the lowest power the house keeps using (5th percentile of the averages).
         const u = consumption();
         const w = toPower(u);
         const standbyW = percentile(w, 0.05);
-        const hours = u.reduce((h, v, i) => (v === null ? h : h + bucketHours(range, i)), 0);
-        const band = u.map((v, i) => (v === null || standbyW === null ? null
-          : dayView ? standbyW : (standbyW * bucketHours(range, i)) / 1000));
+        const hours = u.reduce(
+          (h, v, i) => (v === null ? h : h + bucketHours(range, i)),
+          0
+        );
+        const band = u.map((v, i) =>
+          v === null || standbyW === null
+            ? null
+            : dayView
+              ? standbyW
+              : (standbyW * bucketHours(range, i)) / 1000
+        );
         const e = energy(u);
-        return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
-          series: [{ values: e.values, color: col.consumption, faint: true }, { values: band, color: col.consumption, arrow: "↓" }],
-          header: [{ arrow: "↓", value: standbyW === null ? null : (standbyW * hours) / 1000, unit: "kWh", decimals: 1, color: col.consumption }] };
+        return {
+          ...base,
+          kind: dayView ? "area" : "bars",
+          unit: e.unit,
+          decimals: dayView ? 0 : 2,
+          series: [
+            { values: e.values, color: col.consumption, faint: true },
+            { values: band, color: col.consumption, arrow: "↓" },
+          ],
+          header: [
+            {
+              arrow: "↓",
+              value: standbyW === null ? null : (standbyW * hours) / 1000,
+              unit: "kWh",
+              decimals: 1,
+              color: col.consumption,
+            },
+          ],
+        };
       }
       case "battery": {
-        const socs = src.batterySoc.map((id) => seriesOf(data.mean[id], range.buckets, "mean"));
+        const socs = src.batterySoc.map((id) =>
+          seriesOf(data.mean[id], range.buckets, "mean")
+        );
         const soc = range.buckets.map((_, i) => {
           const v = socs.map((s) => s[i]).filter((x) => x !== null);
           return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
         });
-        const now = src.batterySoc.map((id) => stateValue(hass, id, "raw")).filter((v) => v !== null);
-        return { ...base, kind: "line", unit: "%", decimals: 0, min: 0, max: 100,
+        const now = src.batterySoc
+          .map((id) => stateValue(hass, id, "raw"))
+          .filter((v) => v !== null);
+        return {
+          ...base,
+          kind: "line",
+          unit: "%",
+          decimals: 0,
+          min: 0,
+          max: 100,
           series: [{ values: soc, color: col.battery }],
           header: [
-            { arrow: "↓", value: total(ch(src.batteryIn)), unit: "", decimals: 1, color: col.grid },
-            { arrow: "↑", value: total(ch(src.batteryOut)), unit: "kWh", decimals: 1, color: col.delivery },
+            {
+              arrow: "↓",
+              value: total(ch(src.batteryIn)),
+              unit: "",
+              decimals: 1,
+              color: col.grid,
+            },
+            {
+              arrow: "↑",
+              value: total(ch(src.batteryOut)),
+              unit: "kWh",
+              decimals: 1,
+              color: col.delivery,
+            },
           ],
-          corner: now.length ? `${Math.round(now.reduce((a, b) => a + b, 0) / now.length)} %` : null };
+          corner: now.length
+            ? `${Math.round(now.reduce((a, b) => a + b, 0) / now.length)} %`
+            : null,
+        };
       }
       default: {
         // Own sensor, for example a temperature: its average per bucket as a line.
         const id = chart.entity;
         const st = entityOf(hass, id);
         const icon = entityIcon(hass, id);
-        const color = slotCol[`entity:${id}`] || (icon === "temperature" ? c.color_gas : icon === "humidity" ? c.color_water : c.color_battery);
+        const color =
+          slotCol[`entity:${id}`] ||
+          (icon === "temperature"
+            ? c.color_gas
+            : icon === "humidity"
+              ? c.color_water
+              : c.color_battery);
         const unit = unitOf(hass, id) || "";
         const v = stateValue(hass, id, "raw");
-        return { ...base, key: "entity", icon,
-          title: (st && st.attributes && st.attributes.friendly_name) || id, kind: "line", unit, decimals: 1,
-          series: [{ values: seriesOf(data.mean[id], range.buckets, "mean"), color }],
-          header: [{ arrow: "", value: v, unit, decimals: 1, color }] };
+        return {
+          ...base,
+          key: "entity",
+          icon,
+          title: (st && st.attributes && st.attributes.friendly_name) || id,
+          kind: "line",
+          unit,
+          decimals: 1,
+          series: [
+            { values: seriesOf(data.mean[id], range.buckets, "mean"), color },
+          ],
+          header: [{ arrow: "", value: v, unit, decimals: 1, color }],
+        };
       }
     }
   };
@@ -1377,7 +2102,8 @@ const HWDC = (() => {
     min = Math.floor(min / step) * step;
     max = Math.ceil(max / step) * step;
     const ticks = [];
-    for (let t = min; t <= max + step / 2; t += step) ticks.push(Number(t.toFixed(10)));
+    for (let t = min; t <= max + step / 2; t += step)
+      ticks.push(Number(t.toFixed(10)));
     return { min, max, step, ticks };
   };
 
@@ -1387,7 +2113,10 @@ const HWDC = (() => {
     const mid = new Date(range.start + (range.end - range.start) / 2);
     const fmtDate = (opts) => {
       try {
-        return new Intl.DateTimeFormat(loc, { ...opts, timeZone: tz || "UTC" }).format(mid);
+        return new Intl.DateTimeFormat(loc, {
+          ...opts,
+          timeZone: tz || "UTC",
+        }).format(mid);
       } catch {
         return new Intl.DateTimeFormat(loc, opts).format(mid);
       }
@@ -1401,10 +2130,15 @@ const HWDC = (() => {
       const p = tzParts(range.start + 12 * 3600000, tz);
       const d = new Date(Date.UTC(p.y, p.m - 1, p.d + 3)); // Thursday decides the ISO week
       const jan4 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
-      const week = 1 + Math.round(((d - jan4) / 86400000 - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7);
+      const week =
+        1 +
+        Math.round(
+          ((d - jan4) / 86400000 - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7
+        );
       return `${T.week} ${week}`;
     }
-    if (range.period === "month") return fmtDate({ month: "long", year: "numeric" });
+    if (range.period === "month")
+      return fmtDate({ month: "long", year: "numeric" });
     return fmtDate({ year: "numeric" });
   };
 
@@ -1413,12 +2147,19 @@ const HWDC = (() => {
     const loc = pickLang(lang) === "nl" ? "nl-NL" : "en-GB";
     const fmt = (t, opts) => {
       try {
-        return new Intl.DateTimeFormat(loc, { ...opts, timeZone: tz || "UTC" }).format(new Date(t));
+        return new Intl.DateTimeFormat(loc, {
+          ...opts,
+          timeZone: tz || "UTC",
+        }).format(new Date(t));
       } catch {
         return new Intl.DateTimeFormat(loc, opts).format(new Date(t));
       }
     };
-    if (range.period === "day") return [2, 7, 12, 17, 22].map((h) => [range.start + h * 3600000, `${String(h).padStart(2, "0")}:00`]);
+    if (range.period === "day")
+      return [2, 7, 12, 17, 22].map((h) => [
+        range.start + h * 3600000,
+        `${String(h).padStart(2, "0")}:00`,
+      ]);
     if (range.period === "week") {
       const out = [];
       for (let i = 0; i < 7; i += 1) {
@@ -1428,9 +2169,15 @@ const HWDC = (() => {
       return out;
     }
     if (range.period === "month") {
-      return range.buckets.map((t, i) => [t + 12 * 3600000, i + 1]).filter(([, d]) => d === 1 || d % 5 === 0).map(([t, d]) => [t, String(d)]);
+      return range.buckets
+        .map((t, i) => [t + 12 * 3600000, i + 1])
+        .filter(([, d]) => d === 1 || d % 5 === 0)
+        .map(([t, d]) => [t, String(d)]);
     }
-    return range.buckets.map((t) => [t + 15 * 86400000, fmt(t + 15 * 86400000, { month: "short" }).replace(".", "")]);
+    return range.buckets.map((t) => [
+      t + 15 * 86400000,
+      fmt(t + 15 * 86400000, { month: "short" }).replace(".", ""),
+    ]);
   };
 
   // Text sizes in the charts, in pixels: the tile is drawn at its real size (1 unit = 1 px), so
@@ -1440,7 +2187,10 @@ const HWDC = (() => {
   // A chart tile as SVG in the style of the HomeWizard app, filling a frame of `size`
   // {width, height} pixels. A number is the height at the old fixed width of 800.
   const renderChartTile = (chart, range, fmt, c, lang, tz, uid, size) => {
-    const box = size && typeof size === "object" ? size : { width: 800, height: size || 260 };
+    const box =
+      size && typeof size === "object"
+        ? size
+        : { width: 800, height: size || 260 };
     const W = Math.max(240, Math.round(box.width || 800));
     // Drawn at the height of the tile, so nothing is scaled down (a phone leaves about 140 px).
     const H = Math.max(120, Math.round(box.height || 260));
@@ -1453,10 +2203,17 @@ const HWDC = (() => {
     // Header: coloured totals with arrows, as big as fits next to the icon; title, cost and icon.
     const iconSize = W < 480 ? 22 : 26;
     const iconX = W - pad - iconSize;
-    const heads = chart.header.map((h) => ({ ...h, num: h.value === null ? "–" : fmt(h.value, h.decimals).text }));
+    const heads = chart.header.map((h) => ({
+      ...h,
+      num: h.value === null ? "–" : fmt(h.value, h.decimals).text,
+    }));
     const arrowW = (h, f) => (h.arrow ? (h.arrow === "⇅" ? 0.8 : 0.55) * f : 0); // the double arrow is wider
     const unitW = (h) => (h.unit ? h.unit.length * F.unit * 0.6 + 10 : 10);
-    const headW = (f) => heads.reduce((w, h) => w + arrowW(h, f) + h.num.length * f * 0.56 + 4 + unitW(h), 0);
+    const headW = (f) =>
+      heads.reduce(
+        (w, h) => w + arrowW(h, f) + h.num.length * f * 0.56 + 4 + unitW(h),
+        0
+      );
     const room = iconX - pad - 8;
     // A short tile (a phone in the 5:3 frame) gets a tighter header, so the chart keeps room.
     const short = H < 240;
@@ -1465,47 +2222,124 @@ const HWDC = (() => {
     const hy = (short ? 10 : 14) + f;
     let hx = pad + 2;
     for (const h of heads) {
-      if (h.arrow) parts.push(text(hx.toFixed(1), hy, Math.round(f * 0.73), h.color, h.arrow));
+      if (h.arrow)
+        parts.push(
+          text(hx.toFixed(1), hy, Math.round(f * 0.73), h.color, h.arrow)
+        );
       hx += arrowW(h, f);
       parts.push(text(hx.toFixed(1), hy, f, h.color, esc(h.num)));
       hx += h.num.length * f * 0.56 + 4;
-      if (h.unit) parts.push(text(hx.toFixed(1), hy, F.unit, sub, esc(h.unit), undefined, 0.7));
+      if (h.unit)
+        parts.push(
+          text(hx.toFixed(1), hy, F.unit, sub, esc(h.unit), undefined, 0.7)
+        );
       hx += unitW(h);
     }
     const titleY = hy + (short ? 18 : 22);
-    parts.push(text(pad + 2, titleY, F.title, sub, esc(chart.title || T.title[chart.key])));
-    const corner = chart.corner || (chart.cost !== null && chart.cost !== undefined
-      ? `${fmt.currency || "€"} ${fmt(chart.cost, 2).text}` : null);
+    parts.push(
+      text(
+        pad + 2,
+        titleY,
+        F.title,
+        sub,
+        esc(chart.title || T.title[chart.key])
+      )
+    );
+    const corner =
+      chart.corner ||
+      (chart.cost !== null && chart.cost !== undefined
+        ? `${fmt.currency || "€"} ${fmt(chart.cost, 2).text}`
+        : null);
     if (corner) {
       // Top right next to the icon; on the title line when the totals need that room.
       const up = hx + corner.length * F.corner * 0.6 < iconX - 10;
-      parts.push(text(up ? iconX - 10 : W - pad, up ? hy - Math.round(f * 0.33) : titleY, F.corner, sub, esc(corner), "end", 0.75));
+      parts.push(
+        text(
+          up ? iconX - 10 : W - pad,
+          up ? hy - Math.round(f * 0.33) : titleY,
+          F.corner,
+          sub,
+          esc(corner),
+          "end",
+          0.75
+        )
+      );
     }
-    parts.push(`<path transform="translate(${iconX} ${pad - 2}) scale(${(iconSize / 24).toFixed(3)})" fill="${sub}" d="${ICONS[chart.icon] || ICONS.entity}"/>`);
+    parts.push(
+      `<path transform="translate(${iconX} ${pad - 2}) scale(${(iconSize / 24).toFixed(3)})" fill="${sub}" d="${ICONS[chart.icon] || ICONS.entity}"/>`
+    );
 
     // Axis: the values on the right get the room their widest label needs.
-    const values = chart.series.flatMap((s) => s.values).filter((v) => v !== null);
-    const lo = chart.min !== undefined ? chart.min : chart.kind === "line" && values.length ? Math.min(...values) : 0;
-    const hi = chart.max !== undefined ? chart.max : values.length ? Math.max(...values) : 1;
+    const values = chart.series
+      .flatMap((s) => s.values)
+      .filter((v) => v !== null);
+    const lo =
+      chart.min !== undefined
+        ? chart.min
+        : chart.kind === "line" && values.length
+          ? Math.min(...values)
+          : 0;
+    const hi =
+      chart.max !== undefined
+        ? chart.max
+        : values.length
+          ? Math.max(...values)
+          : 1;
     const top = titleY + (short ? 16 : 22);
     const bottom = H - 28;
     // At least 8 px between two value labels; a very low chart shows only 0 and the top.
-    const steps = Math.max(1, Math.min(5, Math.floor((bottom - top) / (F.axis + 8))));
+    const steps = Math.max(
+      1,
+      Math.min(5, Math.floor((bottom - top) / (F.axis + 8)))
+    );
     const axis = niceAxis(lo, hi > lo ? hi : lo + 1, steps);
     // Enough decimals for the step: 0.25 → 2, 0.002 → 3.
-    const dec = axis.step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(axis.step) + (String(axis.step).includes("25") ? 1 : 0) - 1e-9));
+    const dec =
+      axis.step >= 1
+        ? 0
+        : Math.min(
+            4,
+            Math.ceil(
+              -Math.log10(axis.step) +
+                (String(axis.step).includes("25") ? 1 : 0) -
+                1e-9
+            )
+          );
     const ticks = axis.ticks.map((t) => [t, fmt(t, dec).text]);
     const tickW = Math.max(...ticks.map(([, s]) => s.length)) * F.axis * 0.62;
     const CH = { x0: pad, x1: Math.round(W - pad - tickW - 8), top, bottom };
     const span = range.end - range.start;
     const xAt = (t) => CH.x0 + ((t - range.start) / span) * (CH.x1 - CH.x0);
     const n = range.buckets.length;
-    const centers = range.buckets.map((t, i) => xAt(t + ((range.buckets[i + 1] !== undefined ? range.buckets[i + 1] : range.end) - t) / 2));
-    const yAt = (v) => CH.bottom - ((v - axis.min) / (axis.max - axis.min)) * (CH.bottom - CH.top);
+    const centers = range.buckets.map((t, i) =>
+      xAt(
+        t +
+          ((range.buckets[i + 1] !== undefined
+            ? range.buckets[i + 1]
+            : range.end) -
+            t) /
+            2
+      )
+    );
+    const yAt = (v) =>
+      CH.bottom -
+      ((v - axis.min) / (axis.max - axis.min)) * (CH.bottom - CH.top);
     for (const [t, label] of ticks) {
       const y = yAt(t).toFixed(1);
-      parts.push(`<line x1="${CH.x0}" y1="${y}" x2="${CH.x1}" y2="${y}" stroke="${sub}" stroke-opacity="0.08"/>`);
-      parts.push(text(W - pad, (Number(y) + 4).toFixed(1), F.axis, sub, esc(label), "end", 0.7));
+      parts.push(
+        `<line x1="${CH.x0}" y1="${y}" x2="${CH.x1}" y2="${y}" stroke="${sub}" stroke-opacity="0.08"/>`
+      );
+      parts.push(
+        text(
+          W - pad,
+          (Number(y) + 4).toFixed(1),
+          F.axis,
+          sub,
+          esc(label),
+          "end",
+          0.7
+        )
+      );
     }
     // Labels under the x axis; one that would touch the previous one is left out (narrow cards).
     let lastEnd = -Infinity;
@@ -1514,7 +2348,9 @@ const HWDC = (() => {
       const half = String(label).length * F.axis * 0.31;
       if (x - half < lastEnd + 6) continue;
       lastEnd = x + half;
-      parts.push(text(x.toFixed(1), H - 10, F.axis, sub, esc(label), "middle", 0.7));
+      parts.push(
+        text(x.toFixed(1), H - 10, F.axis, sub, esc(label), "middle", 0.7)
+      );
     }
 
     // Series.
@@ -1522,72 +2358,149 @@ const HWDC = (() => {
     chart.series.forEach((s, si) => {
       const id = `g${uid}-${si}`;
       if (chart.kind === "area") {
-        defs.push(`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.color}" stop-opacity="${s.faint ? 0.35 : 0.9}"/><stop offset="1" stop-color="${s.color}" stop-opacity="${s.faint ? 0.1 : 0.15}"/></linearGradient>`);
+        defs.push(
+          `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.color}" stop-opacity="${s.faint ? 0.35 : 0.9}"/><stop offset="1" stop-color="${s.color}" stop-opacity="${s.faint ? 0.1 : 0.15}"/></linearGradient>`
+        );
         let seg = [];
         const flush = () => {
           if (seg.length) {
-            const line = seg.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join("");
-            parts.push(`<path d="${line}L${seg[seg.length - 1][0].toFixed(1)} ${CH.bottom}L${seg[0][0].toFixed(1)} ${CH.bottom}Z" fill="url(#${id})"/>`);
-            if (!s.faint) parts.push(`<path d="${line}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`);
+            const line = seg
+              .map(
+                ([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`
+              )
+              .join("");
+            parts.push(
+              `<path d="${line}L${seg[seg.length - 1][0].toFixed(1)} ${CH.bottom}L${seg[0][0].toFixed(1)} ${CH.bottom}Z" fill="url(#${id})"/>`
+            );
+            if (!s.faint)
+              parts.push(
+                `<path d="${line}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
+              );
           }
           seg = [];
         };
-        s.values.forEach((v, i) => { if (v === null) flush(); else seg.push([centers[i], yAt(Math.max(axis.min, v))]); });
+        s.values.forEach((v, i) => {
+          if (v === null) flush();
+          else seg.push([centers[i], yAt(Math.max(axis.min, v))]);
+        });
         flush();
       } else if (chart.kind === "bars") {
         const w = Math.max(1, ((CH.x1 - CH.x0) / n) * 0.7);
         s.values.forEach((v, i) => {
           if (v === null || v <= 0) return;
           const y = yAt(v);
-          parts.push(`<rect x="${(centers[i] - w / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${(CH.bottom - y).toFixed(1)}" rx="${Math.min(2, w / 2).toFixed(1)}" fill="${s.color}"${s.faint ? ' fill-opacity="0.35"' : ""}/>`);
+          parts.push(
+            `<rect x="${(centers[i] - w / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${(CH.bottom - y).toFixed(1)}" rx="${Math.min(2, w / 2).toFixed(1)}" fill="${s.color}"${s.faint ? ' fill-opacity="0.35"' : ""}/>`
+          );
         });
       } else {
         let seg = [];
         const flush = () => {
-          if (seg.length) parts.push(`<path d="${seg.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join("")}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round"/>`);
+          if (seg.length)
+            parts.push(
+              `<path d="${seg.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join("")}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round"/>`
+            );
           seg = [];
         };
-        s.values.forEach((v, i) => { if (v === null) flush(); else seg.push([centers[i], yAt(v)]); });
+        s.values.forEach((v, i) => {
+          if (v === null) flush();
+          else seg.push([centers[i], yAt(v)]);
+        });
         flush();
       }
     });
-    if (!values.length) parts.push(text(Math.round((CH.x0 + CH.x1) / 2), Math.round((CH.top + CH.bottom) / 2), F.title, sub, esc(T.none), "middle", 0.5));
+    if (!values.length)
+      parts.push(
+        text(
+          Math.round((CH.x0 + CH.x1) / 2),
+          Math.round((CH.top + CH.bottom) / 2),
+          F.title,
+          sub,
+          esc(T.none),
+          "middle",
+          0.5
+        )
+      );
     // Pointer line and label, moved by the card. The label has a halo in the background colour,
     // so it stays readable over the title and the grid lines.
-    parts.push(`<g class="hover" visibility="hidden"><line x1="0" y1="${CH.top - 6}" x2="0" y2="${CH.bottom}" stroke="${sub}" stroke-opacity="0.6"/><text x="0" y="${CH.top - 10}" text-anchor="middle" ${FONT} font-size="${F.hover}" fill="${sub}" stroke="${c.color_background}" stroke-width="4" stroke-linejoin="round" paint-order="stroke"></text></g>`);
+    parts.push(
+      `<g class="hover" visibility="hidden"><line x1="0" y1="${CH.top - 6}" x2="0" y2="${CH.bottom}" stroke="${sub}" stroke-opacity="0.6"/><text x="0" y="${CH.top - 10}" text-anchor="middle" ${FONT} font-size="${F.hover}" fill="${sub}" stroke="${c.color_background}" stroke-width="4" stroke-linejoin="round" paint-order="stroke"></text></g>`
+    );
 
     // What the pointer shows per bucket.
     const lc = pickLang(lang) === "nl" ? "nl-NL" : "en-GB";
     const when = (t) => {
-      const opts = range.period === "day" || range.period === "week"
-        ? { weekday: range.period === "week" ? "short" : undefined, hour: "2-digit", minute: "2-digit" }
-        : range.period === "month" ? { day: "numeric", month: "short" } : { month: "long" };
+      const opts =
+        range.period === "day" || range.period === "week"
+          ? {
+              weekday: range.period === "week" ? "short" : undefined,
+              hour: "2-digit",
+              minute: "2-digit",
+            }
+          : range.period === "month"
+            ? { day: "numeric", month: "short" }
+            : { month: "long" };
       try {
-        return new Intl.DateTimeFormat(lc, { ...opts, timeZone: tz || "UTC" }).format(new Date(t));
+        return new Intl.DateTimeFormat(lc, {
+          ...opts,
+          timeZone: tz || "UTC",
+        }).format(new Date(t));
       } catch {
         return new Intl.DateTimeFormat(lc, opts).format(new Date(t));
       }
     };
     // Each series with its arrow; zeros left out unless everything is zero.
     const labels = range.buckets.map((t, i) => {
-      const vals = chart.series.filter((s) => !s.faint).map((s) => [s.arrow || "", s.values[i]]).filter(([, v]) => v !== null);
+      const vals = chart.series
+        .filter((s) => !s.faint)
+        .map((s) => [s.arrow || "", s.values[i]])
+        .filter(([, v]) => v !== null);
       if (!vals.length) return null;
-      const shown = vals.some(([, v]) => v !== 0) ? vals.filter(([, v]) => v !== 0) : vals.slice(0, 1);
+      const shown = vals.some(([, v]) => v !== 0)
+        ? vals.filter(([, v]) => v !== 0)
+        : vals.slice(0, 1);
       return `${when(t)}  ${shown.map(([a, v]) => `${a}${fmt(v, chart.decimals).text}`).join("  ")} ${chart.unit}`.trim();
     });
     // A screen reader hears the title and the totals, like "Water: ↓ 153 L".
-    const spoken = [chart.title || T.title[chart.key], heads.map((h) => `${h.arrow} ${h.num} ${h.unit}`.trim()).join(", ")];
+    const spoken = [
+      chart.title || T.title[chart.key],
+      heads.map((h) => `${h.arrow} ${h.num} ${h.unit}`.trim()).join(", "),
+    ];
     const svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(spoken.filter(Boolean).join(": "))}"><defs>${defs.join("")}</defs>${parts.join("")}</svg>`;
-    return { svg, meta: { width: W, title: spoken[0], centers: centers.map((x) => Number(x.toFixed(1))), labels } };
+    return {
+      svg,
+      meta: {
+        width: W,
+        title: spoken[0],
+        centers: centers.map((x) => Number(x.toFixed(1))),
+        labels,
+      },
+    };
   };
 
   // The whole charts view: period label and one tile per chart. `size`: see renderChartTile.
   const renderCharts = (state, config, fmt, lang, hass, size) => {
     const tz = hass && hass.config ? hass.config.time_zone : undefined;
     const eff = effectiveColors(config, hass);
-    const c = { ...config, ...eff.accents, color_background: eff.background, color_text: eff.text };
+    const c = {
+      ...config,
+      ...eff.accents,
+      color_background: eff.background,
+      color_text: eff.text,
+    };
     const label = periodLabel(state.data.range, lang, tz);
-    const tiles = state.charts.map((chart, i) => renderChartTile(chartData(chart, state.data, state.sources, c, hass), state.data.range, fmt, c, lang, tz, `${state.uid || "c"}${i}`, size));
+    const tiles = state.charts.map((chart, i) =>
+      renderChartTile(
+        chartData(chart, state.data, state.sources, c, hass),
+        state.data.range,
+        fmt,
+        c,
+        lang,
+        tz,
+        `${state.uid || "c"}${i}`,
+        size
+      )
+    );
     return { label, tiles, colors: eff };
   };
 
@@ -1609,7 +2522,8 @@ const HWDC = (() => {
       data[key] = { ...s, color: s.color || "" };
       if (s.mode === null) delete data[key].mode;
     }
-    if (empty(data.color_background)) data.color_background = COLOR_DEFAULTS.color_background;
+    if (empty(data.color_background))
+      data.color_background = COLOR_DEFAULTS.color_background;
     // Show the defaults, so the switch is on and the sign is filled in when the config is empty.
     data.use_energy_settings = config.use_energy_settings !== false;
     data.show_view_switch = config.show_view_switch !== false;
@@ -1623,11 +2537,20 @@ const HWDC = (() => {
   const goalUnit = (source, goalMode, mode, hass, slot) => {
     if (goalMode === "cost") return currencySymbol(hass, numberLocale(hass));
     switch (source) {
-      case "grid": case "solar": case "consumption": case "device": return goalMode === "now" ? "W" : "kWh";
-      case "battery": case "self_sufficiency": return "%";
-      case "water": return goalMode === "now" ? "L/min" : "L";
-      case "gas": return goalMode === "now" ? "m³/h" : "m³";
-      default: return (slot && slot.entity && unitOf(hass, slot.entity)) || undefined;
+      case "grid":
+      case "solar":
+      case "consumption":
+      case "device":
+        return goalMode === "now" ? "W" : "kWh";
+      case "battery":
+      case "self_sufficiency":
+        return "%";
+      case "water":
+        return goalMode === "now" ? "L/min" : "L";
+      case "gas":
+        return goalMode === "now" ? "m³/h" : "m³";
+      default:
+        return (slot && slot.entity && unitOf(hass, slot.entity)) || undefined;
     }
   };
 
@@ -1637,22 +2560,51 @@ const HWDC = (() => {
       const slot = editorSlot(key, config[key]);
       const spec = SOURCES[slot.source];
       // required: no clear button, a circle or row always shows something (or "none").
-      const items = [{
-        name: "source",
-        required: true,
-        selector: { select: { mode: "dropdown", options: Object.keys(SOURCES).map((s) => ({ value: s, label: T.source[s] })) } },
-      }];
-      if (slot.source === "entity") items.push({ name: "entity", selector: { entity: { filter: { domain: "sensor" } } } });
+      const items = [
+        {
+          name: "source",
+          required: true,
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: Object.keys(SOURCES).map((s) => ({
+                value: s,
+                label: T.source[s],
+              })),
+            },
+          },
+        },
+      ];
+      if (slot.source === "entity")
+        items.push({
+          name: "entity",
+          selector: { entity: { filter: { domain: "sensor" } } },
+        });
       if (slot.source === "device") {
-        items.push({ name: "power", selector: { entity: { filter: { domain: "sensor", device_class: "power" } } } });
-        items.push({ name: "energy", selector: { entity: { filter: { domain: "sensor", device_class: "energy" } } } });
+        items.push({
+          name: "power",
+          selector: {
+            entity: { filter: { domain: "sensor", device_class: "power" } },
+          },
+        });
+        items.push({
+          name: "energy",
+          selector: {
+            entity: { filter: { domain: "sensor", device_class: "energy" } },
+          },
+        });
       }
       if (spec.modes.length > 1) {
         items.push({
           name: "mode",
           required: true,
           helper_text: T.modeHelp[slot.mode],
-          selector: { select: { mode: "dropdown", options: spec.modes.map((m) => ({ value: m, label: T.mode[m] })) } },
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: spec.modes.map((m) => ({ value: m, label: T.mode[m] })),
+            },
+          },
         });
       }
       const goals = slot.mode ? MODE_GOALS[slot.mode] : [];
@@ -1662,20 +2614,41 @@ const HWDC = (() => {
           name: "",
           schema: goals.map((g) => ({
             name: GOAL_KEY[g],
-            selector: { number: { min: 0.01, step: "any", mode: "box", unit_of_measurement: goalUnit(slot.source, g, slot.mode, hass, slot) } },
+            selector: {
+              number: {
+                min: 0.01,
+                step: "any",
+                mode: "box",
+                unit_of_measurement: goalUnit(
+                  slot.source,
+                  g,
+                  slot.mode,
+                  hass,
+                  slot
+                ),
+              },
+            },
           })),
         });
       }
-      if (slot.source !== "none") items.push({ name: "color", selector: { text: {} } });
+      if (slot.source !== "none")
+        items.push({ name: "color", selector: { text: {} } });
       const modeLabel = spec.modes.length > 1 ? `, ${T.mode[slot.mode]}` : "";
-      return { name: key, type: "expandable", title: `${T.slot[key]}: ${T.source[slot.source]}${modeLabel}`, schema: items };
+      return {
+        name: key,
+        type: "expandable",
+        title: `${T.slot[key]}: ${T.source[slot.source]}${modeLabel}`,
+        schema: items,
+      };
     };
     const entity = (name, deviceClass, multiple) => ({
       name,
       selector: {
         entity: {
           multiple: Boolean(multiple),
-          filter: deviceClass ? { domain: "sensor", device_class: deviceClass } : { domain: "sensor" },
+          filter: deviceClass
+            ? { domain: "sensor", device_class: deviceClass }
+            : { domain: "sensor" },
         },
       },
     });
@@ -1685,7 +2658,16 @@ const HWDC = (() => {
         type: "grid",
         name: "",
         schema: [
-          { name: "view", required: true, selector: { select: { mode: "dropdown", options: VIEWS.map((v) => ({ value: v, label: T.view[v] })) } } },
+          {
+            name: "view",
+            required: true,
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: VIEWS.map((v) => ({ value: v, label: T.view[v] })),
+              },
+            },
+          },
           { name: "show_view_switch", selector: { boolean: {} } },
         ],
       },
@@ -1695,14 +2677,38 @@ const HWDC = (() => {
         name: "",
         schema: [
           // A list with suggestions that also takes your own hex colour (custom_value).
-          { name: "color_background", selector: { select: { custom_value: true, mode: "dropdown", options: [
-            { value: BACKGROUND_SUGGESTIONS.display, label: T.bg.display },
-            { value: BACKGROUND_SUGGESTIONS.day, label: T.bg.day },
-          ] } } },
-          { name: "color_background_dark", selector: { select: { custom_value: true, mode: "dropdown", options: [
-            { value: BACKGROUND_SUGGESTIONS.display, label: T.bg.display },
-            { value: BACKGROUND_SUGGESTIONS.night, label: T.bg.night },
-          ] } } },
+          {
+            name: "color_background",
+            selector: {
+              select: {
+                custom_value: true,
+                mode: "dropdown",
+                options: [
+                  {
+                    value: BACKGROUND_SUGGESTIONS.display,
+                    label: T.bg.display,
+                  },
+                  { value: BACKGROUND_SUGGESTIONS.day, label: T.bg.day },
+                ],
+              },
+            },
+          },
+          {
+            name: "color_background_dark",
+            selector: {
+              select: {
+                custom_value: true,
+                mode: "dropdown",
+                options: [
+                  {
+                    value: BACKGROUND_SUGGESTIONS.display,
+                    label: T.bg.display,
+                  },
+                  { value: BACKGROUND_SUGGESTIONS.night, label: T.bg.night },
+                ],
+              },
+            },
+          },
         ],
       },
       {
@@ -1711,9 +2717,32 @@ const HWDC = (() => {
         flatten: true,
         icon: "mdi:chart-areaspline",
         schema: [
-          { name: "charts", selector: { select: { multiple: true, mode: "list", options: CHARTS.map((k) => ({ value: k, label: C.title[k] })) } } },
-          { name: "chart_entities", selector: { entity: { multiple: true, filter: { domain: "sensor" } } } },
-          { name: "period", required: true, selector: { select: { mode: "dropdown", options: PERIODS.map((p) => ({ value: p, label: C.period[p] })) } } },
+          {
+            name: "charts",
+            selector: {
+              select: {
+                multiple: true,
+                mode: "list",
+                options: CHARTS.map((k) => ({ value: k, label: C.title[k] })),
+              },
+            },
+          },
+          {
+            name: "chart_entities",
+            selector: {
+              entity: { multiple: true, filter: { domain: "sensor" } },
+            },
+          },
+          {
+            name: "period",
+            required: true,
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: PERIODS.map((p) => ({ value: p, label: C.period[p] })),
+              },
+            },
+          },
         ],
       },
       {
@@ -1731,7 +2760,12 @@ const HWDC = (() => {
           entity("battery_power", "power", true),
           {
             name: "battery_power_sign",
-            selector: { select: { mode: "dropdown", options: SIGNS.map((v) => ({ value: v, label: T.sign[v] })) } },
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: SIGNS.map((v) => ({ value: v, label: T.sign[v] })),
+              },
+            },
           },
           entity("water", "water", true),
           entity("water_flow"),
@@ -1745,22 +2779,31 @@ const HWDC = (() => {
         type: "expandable",
         flatten: true,
         icon: "mdi:palette",
-        schema: [{
-          type: "grid",
-          name: "",
-          schema: COLOR_KEYS.filter((k) => !k.startsWith("color_background")).map((name) => ({ name, selector: { text: {} } })),
-        }],
+        schema: [
+          {
+            type: "grid",
+            name: "",
+            schema: COLOR_KEYS.filter(
+              (k) => !k.startsWith("color_background")
+            ).map((name) => ({ name, selector: { text: {} } })),
+          },
+        ],
       },
       {
         name: "chart_colors",
         type: "expandable",
         flatten: true,
         icon: "mdi:chart-bar",
-        schema: [{
-          type: "grid",
-          name: "",
-          schema: CHART_COLOR_KEYS.map((name) => ({ name, selector: { text: {} } })),
-        }],
+        schema: [
+          {
+            type: "grid",
+            name: "",
+            schema: CHART_COLOR_KEYS.map((name) => ({
+              name,
+              selector: { text: {} },
+            })),
+          },
+        ],
       },
     ];
   };
@@ -1772,29 +2815,44 @@ const HWDC = (() => {
     for (const key of SLOTS) {
       const nv = { ...(data[key] || {}) };
       const before = editorSlot(key, previous ? previous[key] : undefined);
-      const spec = SOURCES[nv.source] ? SOURCES[nv.source] : SOURCES[before.source];
+      const spec = SOURCES[nv.source]
+        ? SOURCES[nv.source]
+        : SOURCES[before.source];
       if (!SOURCES[nv.source]) nv.source = before.source;
       if (nv.source !== before.source) {
         const def = SLOT_DEFAULTS[key];
         const fresh = { source: nv.source };
-        if (spec.modes.length > 1) fresh.mode = nv.source === def.source ? def.mode : spec.start;
+        if (spec.modes.length > 1)
+          fresh.mode = nv.source === def.source ? def.mode : spec.start;
         out[key] = fresh;
         continue;
       }
-      if (spec.modes.length <= 1) delete nv.mode; // nothing to choose
+      if (spec.modes.length <= 1)
+        delete nv.mode; // nothing to choose
       else if (!spec.modes.includes(nv.mode)) nv.mode = spec.modes[0];
       for (const k of GOAL_KEYS) {
         const mode = Object.keys(GOAL_KEY).find((m) => GOAL_KEY[m] === k);
-        if (empty(nv[k]) || spec.goals[mode] === undefined || Number(nv[k]) === spec.goals[mode]) delete nv[k];
+        if (
+          empty(nv[k]) ||
+          spec.goals[mode] === undefined ||
+          Number(nv[k]) === spec.goals[mode]
+        )
+          delete nv[k];
       }
       if (empty(nv.color)) delete nv.color;
       if (nv.source !== "entity" || empty(nv.entity)) delete nv.entity;
-      for (const k of ["power", "energy"]) if (nv.source !== "device" || empty(nv[k])) delete nv[k];
+      for (const k of ["power", "energy"])
+        if (nv.source !== "device" || empty(nv[k])) delete nv[k];
       out[key] = nv;
     }
-    for (const key of ENTITY_KEYS) if (toList(out[key]).length === 0) delete out[key];
+    for (const key of ENTITY_KEYS)
+      if (toList(out[key]).length === 0) delete out[key];
     for (const key of COLOR_KEYS) {
-      if (empty(out[key]) || String(out[key]).toLowerCase() === COLOR_DEFAULTS[key]) delete out[key];
+      if (
+        empty(out[key]) ||
+        String(out[key]).toLowerCase() === COLOR_DEFAULTS[key]
+      )
+        delete out[key];
     }
     for (const key of CHART_COLOR_KEYS) if (empty(out[key])) delete out[key];
     if (out.battery_power_sign === SIGNS[0]) delete out.battery_power_sign;
@@ -1802,7 +2860,8 @@ const HWDC = (() => {
     if (out.show_view_switch !== false) delete out.show_view_switch;
     if (out.view === "display") delete out.view;
     if (out.period === "day") delete out.period;
-    for (const key of ["charts", "chart_entities"]) if (toList(out[key]).length === 0) delete out[key];
+    for (const key of ["charts", "chart_entities"])
+      if (toList(out[key]).length === 0) delete out[key];
     return out;
   };
 
@@ -1811,24 +2870,83 @@ const HWDC = (() => {
     return T.labels[schema.name] || T.slot[schema.name] || schema.name;
   };
 
-  const editorHelper = (schema, lang) => schema.helper_text || TEXT[pickLang(lang)].helpers[schema.name];
+  const editorHelper = (schema, lang) =>
+    schema.helper_text || TEXT[pickLang(lang)].helpers[schema.name];
 
   return {
-    VERSION, TAG, EDITOR_TAG, SOURCES, SLOTS, SLOT_DEFAULTS, COLOR_DEFAULTS, CHART_COLOR_KEYS, ENTITY_KEYS, TEXT,
-    luminance, effectiveColors, LIGHT_ACCENTS, BACKGROUND_SUGGESTIONS, slotColors,
-    VIEWS, CHARTS, PERIODS, tzParts, zonedMidnight, periodRange, bucketHours, fetchSeries, seriesOf,
-    chartList, chartStatIds, chartData, niceAxis, periodLabel, xLabels, CHART_FONT, renderChartTile, renderCharts,
-    CHART_TEXT, ICONS,
-    normalizeConfig, normalizeSlot, sourcesFromPrefs, resolveSources, needsCosts, meterIds, slotMeterIds, watchedIds,
-    convert, stateValue, gasKind, tryWS, fetchToday, todayValue, computeModel, msToNextRefresh, dayKey, numberLocale,
-    formatter, pickLang, editorLang, slotView, formatView, renderSvg, editorData, editorSchema,
-    cleanEditorConfig, editorLabel, editorHelper,
+    VERSION,
+    TAG,
+    EDITOR_TAG,
+    SOURCES,
+    SLOTS,
+    SLOT_DEFAULTS,
+    COLOR_DEFAULTS,
+    CHART_COLOR_KEYS,
+    ENTITY_KEYS,
+    TEXT,
+    luminance,
+    effectiveColors,
+    LIGHT_ACCENTS,
+    BACKGROUND_SUGGESTIONS,
+    slotColors,
+    VIEWS,
+    CHARTS,
+    PERIODS,
+    tzParts,
+    zonedMidnight,
+    periodRange,
+    bucketHours,
+    fetchSeries,
+    seriesOf,
+    chartList,
+    chartStatIds,
+    chartData,
+    niceAxis,
+    periodLabel,
+    xLabels,
+    CHART_FONT,
+    renderChartTile,
+    renderCharts,
+    CHART_TEXT,
+    ICONS,
+    normalizeConfig,
+    normalizeSlot,
+    sourcesFromPrefs,
+    resolveSources,
+    needsCosts,
+    meterIds,
+    slotMeterIds,
+    watchedIds,
+    convert,
+    stateValue,
+    gasKind,
+    tryWS,
+    fetchToday,
+    todayValue,
+    computeModel,
+    msToNextRefresh,
+    dayKey,
+    numberLocale,
+    formatter,
+    pickLang,
+    editorLang,
+    slotView,
+    formatView,
+    renderSvg,
+    editorData,
+    editorSchema,
+    cleanEditorConfig,
+    editorLabel,
+    editorHelper,
   };
 })();
 
 // ------------------------------------------------------------------ custom elements
 
-if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined") {
+if (
+  typeof HTMLElement !== "undefined" &&
+  typeof customElements !== "undefined"
+) {
   // Spacing, radius and font follow the theme tokens of Home Assistant (the old values are the
   // fallback). The colours are those of the display, on purpose. Logical properties
   // (inset-inline-end, padding-inline-end) move along in right-to-left languages.
@@ -1886,7 +3004,8 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
     setConfig(config) {
       const before = this._config;
       this._config = HWDC.normalizeConfig(config);
-      if (!before || before.view !== this._config.view) this._view = this._config.view;
+      if (!before || before.view !== this._config.view)
+        this._view = this._config.view;
       if (!before || before.period !== this._config.period) {
         this._period = this._config.period;
         this._offset = 0;
@@ -1895,7 +3014,10 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       this._chartsKey = "";
       this._root = null;
       // Until the Energy settings are loaded: the entities from the configuration.
-      this._watch = HWDC.watchedIds(this._config, HWDC.resolveSources(this._config, null, null));
+      this._watch = HWDC.watchedIds(
+        this._config,
+        HWDC.resolveSources(this._config, null, null)
+      );
       this._invalidate();
       if (this._hass && this.isConnected) this._refresh();
       else this._render();
@@ -1914,7 +3036,10 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
 
     connectedCallback() {
       // Back on the page (another dashboard view and back): watch the frame size again.
-      const tiles = this._resize && this.shadowRoot && this.shadowRoot.querySelector(".tiles");
+      const tiles =
+        this._resize &&
+        this.shadowRoot &&
+        this.shadowRoot.querySelector(".tiles");
       if (tiles) this._resize.observe(tiles);
       if (this._hass) this._refresh();
     }
@@ -1971,9 +3096,9 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         // Energy settings and costs at the same time; null without Energy settings.
         const [prefs, info] = config.use_energy_settings
           ? await Promise.all([
-            HWDC.tryWS(hass, { type: "energy/get_prefs" }),
-            costs ? HWDC.tryWS(hass, { type: "energy/info" }) : null,
-          ])
+              HWDC.tryWS(hass, { type: "energy/get_prefs" }),
+              costs ? HWDC.tryWS(hass, { type: "energy/info" }) : null,
+            ])
           : [null, null];
         const sources = HWDC.resolveSources(config, prefs, info);
         if (charts) {
@@ -1982,11 +3107,26 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
           const range = HWDC.periodRange(period, offset, Date.now(), tz);
           const list = HWDC.chartList(config, sources);
           const ids = HWDC.chartStatIds(list, sources);
-          const data = await HWDC.fetchSeries(hass, range, ids.change, ids.mean);
-          if (run !== this._run || period !== this._period || offset !== this._offset) return;
+          const data = await HWDC.fetchSeries(
+            hass,
+            range,
+            ids.change,
+            ids.mean
+          );
+          if (
+            run !== this._run ||
+            period !== this._period ||
+            offset !== this._offset
+          )
+            return;
           this._chart = { charts: list, data, sources };
         } else {
-          const ids = [...new Set([...HWDC.meterIds(sources, costs), ...HWDC.slotMeterIds(config)])];
+          const ids = [
+            ...new Set([
+              ...HWDC.meterIds(sources, costs),
+              ...HWDC.slotMeterIds(config),
+            ]),
+          ];
           const today = await HWDC.fetchToday(hass, ids, Date.now());
           if (run !== this._run) return;
           this._today = today;
@@ -1995,7 +3135,10 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         this._watch = HWDC.watchedIds(config, sources);
         this._day = day;
         if (!charts || this._offset === 0) {
-          this._timer = setTimeout(() => this._refresh(), HWDC.msToNextRefresh(Date.now()));
+          this._timer = setTimeout(
+            () => this._refresh(),
+            HWDC.msToNextRefresh(Date.now())
+          );
         }
         this._invalidate();
         this._render();
@@ -2008,11 +3151,19 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
     // update tries again.
     _showError(e) {
       if (!this.shadowRoot) this.attachShadow({ mode: "open" });
-      const T = HWDC.CHART_TEXT[HWDC.pickLang(this._hass && ((this._hass.locale && this._hass.locale.language) || this._hass.language))];
+      const T =
+        HWDC.CHART_TEXT[
+          HWDC.pickLang(
+            this._hass &&
+              ((this._hass.locale && this._hass.locale.language) ||
+                this._hass.language)
+          )
+        ];
       this._root = null;
       this._deps = null;
       this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div class="wait"></div></ha-card>`;
-      this.shadowRoot.querySelector(".wait").textContent = `${T.error} ${e && e.message ? e.message : e}`;
+      this.shadowRoot.querySelector(".wait").textContent =
+        `${T.error} ${e && e.message ? e.message : e}`;
     }
 
     // Builds the shadow DOM for a view once; later renders only change the content.
@@ -2020,27 +3171,51 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       if (!this.shadowRoot) this.attachShadow({ mode: "open" });
       if (this._root === view) return;
       this._root = view;
-      const sw = this._config.show_view_switch ? '<button class="switch" type="button"></button>' : "";
+      const sw = this._config.show_view_switch
+        ? '<button class="switch" type="button"></button>'
+        : "";
       if (view === "charts") {
-        const tabs = HWDC.PERIODS.map((p) => `<button type="button" data-p="${p}"></button>`).join("");
+        const tabs = HWDC.PERIODS.map(
+          (p) => `<button type="button" data-p="${p}"></button>`
+        ).join("");
         // The tiles can take focus, so the charts also scroll with the keyboard (arrows, Page Down).
-        this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card class="charts">${sw}` +
+        this.shadowRoot.innerHTML =
+          `<style>${STYLE}</style><ha-card class="charts">${sw}` +
           `<div class="bar"><button class="nav prev" type="button">‹</button><span class="label" aria-live="polite"></span>` +
           `<button class="nav next" type="button">›</button><span class="dots"></span><span class="tabs">${tabs}</span></div>` +
           '<div class="tiles" tabindex="0" role="region"></div></ha-card>';
         const root = this.shadowRoot;
-        root.querySelector(".prev").addEventListener("click", () => this._setPeriod(this._period, this._offset + 1));
-        root.querySelector(".next").addEventListener("click", () => this._setPeriod(this._period, this._offset - 1));
-        root.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => this._setPeriod(b.dataset.p, 0)));
+        root
+          .querySelector(".prev")
+          .addEventListener("click", () =>
+            this._setPeriod(this._period, this._offset + 1)
+          );
+        root
+          .querySelector(".next")
+          .addEventListener("click", () =>
+            this._setPeriod(this._period, this._offset - 1)
+          );
+        root
+          .querySelectorAll(".tabs button")
+          .forEach((b) =>
+            b.addEventListener("click", () => this._setPeriod(b.dataset.p, 0))
+          );
         const tiles = root.querySelector(".tiles");
         tiles.addEventListener("pointermove", (e) => this._hover(e));
         tiles.addEventListener("pointerdown", (e) => this._hover(e));
         tiles.addEventListener("pointerleave", () => this._hover(null));
-        tiles.addEventListener("scroll", () => this._markDot(), { passive: true });
+        tiles.addEventListener("scroll", () => this._markDot(), {
+          passive: true,
+        });
         root.querySelector(".dots").addEventListener("click", (e) => {
-          const i = e.target && e.target.dataset ? Number(e.target.dataset.i) : NaN;
+          const i =
+            e.target && e.target.dataset ? Number(e.target.dataset.i) : NaN;
           const tile = root.querySelectorAll(".tile")[i];
-          if (tile) tiles.scrollTo({ top: tile.offsetTop - tiles.offsetTop, behavior: "smooth" });
+          if (tile)
+            tiles.scrollTo({
+              top: tile.offsetTop - tiles.offsetTop,
+              behavior: "smooth",
+            });
         });
         // Redraw when the frame changes size, so each chart keeps filling it.
         if (typeof ResizeObserver !== "undefined") {
@@ -2060,7 +3235,11 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card class="display">${sw}<div class="svg"></div></ha-card>`;
       }
       const button = this.shadowRoot.querySelector(".switch");
-      if (button) button.addEventListener("click", (e) => { e.stopPropagation(); this._toggleView(); });
+      if (button)
+        button.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this._toggleView();
+        });
     }
 
     _render() {
@@ -2068,7 +3247,13 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       const hass = this._hass;
       const day = HWDC.dayKey(Date.now(), hass.config && hass.config.time_zone);
       const today = this._view !== "charts" || this._offset === 0;
-      if (today && this._day && day !== this._day && this._loadingDay !== day && this.isConnected) {
+      if (
+        today &&
+        this._day &&
+        day !== this._day &&
+        this._loadingDay !== day &&
+        this.isConnected
+      ) {
         this._refresh(); // a new day started: fetch the new statistics
       }
       const lang = (hass.locale && hass.locale.language) || hass.language;
@@ -2076,9 +3261,21 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       // number format, the theme, or (via the version) data, configuration, view or size.
       // Home Assistant sends a new hass object for every change in the home.
       const states = hass.states || {};
-      const deps = [this._version, this._view, hass.locale, lang, hass.config, hass.themes && hass.themes.darkMode,
-        ...(this._watch || []).map((id) => states[id])];
-      if (this._deps && deps.length === this._deps.length && deps.every((v, i) => v === this._deps[i])) return;
+      const deps = [
+        this._version,
+        this._view,
+        hass.locale,
+        lang,
+        hass.config,
+        hass.themes && hass.themes.darkMode,
+        ...(this._watch || []).map((id) => states[id]),
+      ];
+      if (
+        this._deps &&
+        deps.length === this._deps.length &&
+        deps.every((v, i) => v === this._deps[i])
+      )
+        return;
       this._deps = deps;
       try {
         const nl = HWDC.pickLang(lang) === "nl";
@@ -2094,7 +3291,13 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         const buttonKey = `${toCharts}${nl}`;
         if (button && button.dataset.key !== buttonKey) {
           button.dataset.key = buttonKey;
-          const title = toCharts ? (nl ? "Grafieken tonen" : "Show charts") : (nl ? "Display tonen" : "Show display");
+          const title = toCharts
+            ? nl
+              ? "Grafieken tonen"
+              : "Show charts"
+            : nl
+              ? "Display tonen"
+              : "Show display";
           button.title = title;
           button.setAttribute("aria-label", title);
           button.innerHTML = `<svg viewBox="0 0 24 24"><path d="${toCharts ? HWDC.ICONS.to_charts : HWDC.ICONS.to_display}"/></svg>`;
@@ -2107,9 +3310,17 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
     }
 
     _renderDisplay(hass, lang) {
-      const sources = this._sources || HWDC.resolveSources(this._config, null, null);
+      const sources =
+        this._sources || HWDC.resolveSources(this._config, null, null);
       const model = HWDC.computeModel(hass, sources, this._today || {});
-      const svg = HWDC.renderSvg(model, this._config, HWDC.formatter(hass), lang, hass, this._today || {});
+      const svg = HWDC.renderSvg(
+        model,
+        this._config,
+        HWDC.formatter(hass),
+        lang,
+        hass,
+        this._today || {}
+      );
       if (svg === this._svg) return;
       this._svg = svg;
       this.shadowRoot.querySelector(".svg").innerHTML = svg;
@@ -2124,7 +3335,8 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         if (el.getAttribute(attr) !== value) el.setAttribute(attr, value);
       };
       root.querySelectorAll(".tabs button").forEach((b) => {
-        if (b.textContent !== T.period[b.dataset.p]) b.textContent = T.period[b.dataset.p];
+        if (b.textContent !== T.period[b.dataset.p])
+          b.textContent = T.period[b.dataset.p];
         const on = b.dataset.p === this._period;
         if (b.classList.contains("on") !== on) b.classList.toggle("on");
         set(b, "aria-pressed", String(on));
@@ -2132,7 +3344,8 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       set(root.querySelector(".prev"), "aria-label", T.prev);
       const next = root.querySelector(".next");
       set(next, "aria-label", T.next);
-      if (next.disabled !== (this._offset === 0)) next.disabled = this._offset === 0;
+      if (next.disabled !== (this._offset === 0))
+        next.disabled = this._offset === 0;
       const tiles = root.querySelector(".tiles");
       set(tiles, "aria-label", T.charts);
       if (!this._chart) {
@@ -2145,27 +3358,42 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       }
       const size = this._tileSize();
       const sizeKey = `${size.width}x${size.height}`;
-      const out = HWDC.renderCharts(this._chart, this._config, HWDC.formatter(hass), lang, hass, size);
+      const out = HWDC.renderCharts(
+        this._chart,
+        this._config,
+        HWDC.formatter(hass),
+        lang,
+        hass,
+        size
+      );
       const key = sizeKey + out.label + out.tiles.map((t) => t.svg).join("");
       if (key === this._chartsKey) return;
       this._chartsKey = key;
       this._lastTileSize = sizeKey;
       root.querySelector(".label").textContent = out.label;
       const keep = tiles.scrollTop;
-      tiles.innerHTML = out.tiles.map((t, i) => `<div class="tile" data-i="${i}">${t.svg}</div>`).join("") ||
-        `<div class="wait">${T.none}</div>`;
+      tiles.innerHTML =
+        out.tiles
+          .map((t, i) => `<div class="tile" data-i="${i}">${t.svg}</div>`)
+          .join("") || `<div class="wait">${T.none}</div>`;
       const step = this._tileStep();
-      tiles.scrollTop = this._keepIndex !== null && this._keepIndex !== undefined && step ? this._keepIndex * step : keep;
+      tiles.scrollTop =
+        this._keepIndex !== null && this._keepIndex !== undefined && step
+          ? this._keepIndex * step
+          : keep;
       this._keepIndex = null;
       this._tileMeta = out.tiles.map((t) => t.meta);
       // One dot per chart, named after it (built as elements: a sensor name is never HTML).
-      const dots = out.tiles.length > 1 ? out.tiles.map((t, i) => {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.dataset.i = String(i);
-        b.setAttribute("aria-label", t.meta.title);
-        return b;
-      }) : [];
+      const dots =
+        out.tiles.length > 1
+          ? out.tiles.map((t, i) => {
+              const b = document.createElement("button");
+              b.type = "button";
+              b.dataset.i = String(i);
+              b.setAttribute("aria-label", t.meta.title);
+              return b;
+            })
+          : [];
       root.querySelector(".dots").replaceChildren(...dots);
       this._markDot();
     }
@@ -2175,15 +3403,21 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       const tiles = this.shadowRoot && this.shadowRoot.querySelector(".tiles");
       const list = tiles ? tiles.querySelectorAll(".tile") : [];
       if (!list.length) return 0;
-      return list.length > 1 ? list[1].offsetTop - list[0].offsetTop : list[0].offsetHeight;
+      return list.length > 1
+        ? list[1].offsetTop - list[0].offsetTop
+        : list[0].offsetHeight;
     }
 
     // Size of one chart in pixels: each chart is drawn at exactly this size, so it fills the
     // frame and its text keeps its size on every screen.
     _tileSize() {
       const tiles = this.shadowRoot && this.shadowRoot.querySelector(".tiles");
-      if (!tiles || !tiles.clientWidth || !tiles.clientHeight) return { width: 800, height: 480 };
-      return { width: Math.round(tiles.clientWidth), height: Math.round(tiles.clientHeight) };
+      if (!tiles || !tiles.clientWidth || !tiles.clientHeight)
+        return { width: 800, height: 480 };
+      return {
+        width: Math.round(tiles.clientWidth),
+        height: Math.round(tiles.clientHeight),
+      };
     }
 
     // Index of the chart in view.
@@ -2206,7 +3440,8 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
     // Line and value under the pointer, like the app.
     _hover(e) {
       const root = this.shadowRoot;
-      const tile = e && e.target && e.target.closest ? e.target.closest(".tile") : null;
+      const tile =
+        e && e.target && e.target.closest ? e.target.closest(".tile") : null;
       root.querySelectorAll(".tile .hover").forEach((g) => {
         if (!tile || !tile.contains(g)) g.setAttribute("visibility", "hidden");
       });
@@ -2234,8 +3469,14 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       line.setAttribute("x2", cx);
       const label = g.querySelector("text");
       // Keep the whole label inside the chart.
-      const half = Math.min(meta.width / 2, meta.labels[best].length * HWDC.CHART_FONT.hover * 0.29 + 4);
-      label.setAttribute("x", Math.max(half, Math.min(meta.width - half, cx)).toFixed(1));
+      const half = Math.min(
+        meta.width / 2,
+        meta.labels[best].length * HWDC.CHART_FONT.hover * 0.29 + 4
+      );
+      label.setAttribute(
+        "x",
+        Math.max(half, Math.min(meta.width - half, cx)).toFixed(1)
+      );
       label.textContent = meta.labels[best];
       g.setAttribute("visibility", "visible");
     }
@@ -2261,7 +3502,8 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
     // A new hass object comes with every change in the home. The form only needs it passed on;
     // labels and schema are rebuilt when the language changes or the first hass arrives.
     set hass(hass) {
-      const rebuild = !this._hass || HWDC.editorLang(this._hass) !== HWDC.editorLang(hass);
+      const rebuild =
+        !this._hass || HWDC.editorLang(this._hass) !== HWDC.editorLang(hass);
       this._hass = hass;
       if (!this._form) return;
       this._form.hass = hass;
@@ -2277,7 +3519,13 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
           ev.stopPropagation();
           const config = HWDC.cleanEditorConfig(ev.detail.value, this._config);
           this._config = config;
-          this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+          this.dispatchEvent(
+            new CustomEvent("config-changed", {
+              detail: { config },
+              bubbles: true,
+              composed: true,
+            })
+          );
           this._render();
         });
         this.appendChild(this._form);
@@ -2290,16 +3538,19 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
     }
   }
 
-  if (!customElements.get(HWDC.EDITOR_TAG)) customElements.define(HWDC.EDITOR_TAG, HomeWizardDisplayCardEditor);
+  if (!customElements.get(HWDC.EDITOR_TAG))
+    customElements.define(HWDC.EDITOR_TAG, HomeWizardDisplayCardEditor);
   if (!customElements.get(HWDC.TAG)) {
     customElements.define(HWDC.TAG, HomeWizardDisplayCard);
     window.customCards = window.customCards || [];
     window.customCards.push({
       type: HWDC.TAG,
       name: "HomeWizard Display Card",
-      description: "The Usage Overview screen of the HomeWizard Energy Display: electricity, solar, home battery, water and gas at a glance.",
+      description:
+        "The Usage Overview screen of the HomeWizard Energy Display: electricity, solar, home battery, water and gas at a glance.",
       preview: true,
-      documentationURL: "https://github.com/timoverwoest/homewizard_display_card",
+      documentationURL:
+        "https://github.com/timoverwoest/homewizard_display_card",
     });
   }
 }
