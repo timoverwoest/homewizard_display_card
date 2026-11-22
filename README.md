@@ -60,7 +60,7 @@ Once the card is in the catalog, you can simply search for **HomeWizard Display 
    [latest release](https://github.com/timoverwoest/homewizard_display_card/releases/latest)
    (it is in the source code) and put it in `/config/www/`.
 2. Go to **Settings → Dashboards → ⋮ → Resources** and add
-   `/local/homewizard_display_card.js?v=0.2.0` as a **JavaScript module**.
+   `/local/homewizard_display_card.js?v=0.3.0` as a **JavaScript module**.
 3. Reload your browser. Raise `?v=` with every new version.
 
 ## Configuration

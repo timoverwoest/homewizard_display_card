@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.0 - 2026-11-22
 
 * **Background suggestions.** The editor suggests light `#f4f5f7` by day and dark grey `#1c1c1c`
   at night, next to the black of the display (still the default). Your own hex colour still works.
