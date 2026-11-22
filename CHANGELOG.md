@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+* **Day and night background.** New option `color_background_dark`: the background while Home
+  Assistant shows a dark theme. `color_background` is the background by day. Empty keeps one
+  background for both.
+* **Automatic text colour.** Without `color_text`, the numbers are white on a dark background and
+  near-black on a light one, so a light background stays readable.
+
 ## v0.1.1 - 2026-11-22
 
 * **Editor shows the defaults.** The switch "Use the Energy settings for empty fields" is on and

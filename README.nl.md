@@ -24,7 +24,7 @@ of in kosten.
   rechts. Levering (teruglevering, zon, een accu die ontlaadt) is groen: ringen vullen linksom,
   balkjes van rechts naar links.
 * **Visuele editor** in het Nederlands en Engels, ingedeeld zoals de HomeWizard-app. Getallen
-  volgen de getalnotatie van je profiel. Achtergrondkleur naar keuze.
+  volgen de getalnotatie van je profiel. Achtergrondkleur naar keuze, voor dag en nacht.
 * **Eén klein bestand, geen afhankelijkheden.** Past in een secties-weergave en schaalt mee met
   elke breedte.
 
@@ -146,13 +146,25 @@ zoals hij is.
 
 | Optie | Standaard | Gebruikt voor |
 |-------|-----------|---------------|
-| `color_background` | `#05070b` (het zwart van het display) | Achtergrond; elke hex-kleur, zoals `#000000` of `#1c1c1c` |
+| `color_background` | `#05070b` (het zwart van het display) | Achtergrond overdag (licht thema); elke hex-kleur, zoals `#000000` of `#f4f4f4` |
+| `color_background_dark` | zelfde als overdag | Achtergrond 's nachts (donker thema) |
 | `color_grid` | `#a259ff` | Hoofdaansluiting en stroomverbruik |
 | `color_delivery` | `#86d03c` | Levering: teruglevering, zon, een accu die ontlaadt, zelfvoorzienend |
 | `color_battery` | `#b9d2e0` | Thuisaccu zolang die niet levert, en eigen sensoren |
 | `color_water` | `#3d8ff5` | Water |
 | `color_gas` | `#f5a524` | Gas |
-| `color_text` | `#ffffff` | Getallen |
+| `color_text` | automatisch | Getallen: wit op een donkere achtergrond, bijna zwart op een lichte |
+
+**Dag en nacht.** De kaart volgt de lichte of donkere modus van Home Assistant, net als de rest
+van je dashboard: in je profiel volgt **Thema** op *Automatisch* je apparaat, of kies *Licht* of
+*Donker*. In de donkere modus gebruikt de kaart `color_background_dark`; laat die leeg voor één
+achtergrond. Bijvoorbeeld een lichte kaart overdag en 's nachts het zwart van het display:
+
+```yaml
+type: custom:homewizard-display-card
+color_background: "#f4f4f4"
+color_background_dark: "#05070b"
+```
 
 ### Voorbeeld
 

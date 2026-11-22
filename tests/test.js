@@ -456,6 +456,35 @@ test("background colour is used", () => {
   ok(svg.includes('<rect width="800" height="480" fill="#1c1c1c"/>'));
 });
 
+test("luminance of colours", () => {
+  near(HWDC.luminance("#000"), 0);
+  near(HWDC.luminance("#ffffff"), 1);
+  near(HWDC.luminance("white"), 1);
+  ok(HWDC.luminance("#05070b") < 0.01);
+  ok(HWDC.luminance("rgb(240, 240, 240)") > 0.8);
+  ok(HWDC.luminance("#f0f0f0cc") > 0.8, "alpha ignored");
+  eq(HWDC.luminance("var(--x)"), null);
+});
+
+test("day and night background follow the theme", () => {
+  const c = HWDC.normalizeConfig({ color_background: "#f4f4f4", color_background_dark: "#05070b" });
+  eq(HWDC.effectiveColors(c, { themes: { darkMode: false } }), { background: "#f4f4f4", text: "#14161a", dark: false });
+  eq(HWDC.effectiveColors(c, { themes: { darkMode: true } }), { background: "#05070b", text: "#ffffff", dark: true });
+  eq(HWDC.effectiveColors(c, {}).background, "#f4f4f4", "no theme info = day");
+  const one = HWDC.normalizeConfig({});
+  eq(HWDC.effectiveColors(one, { themes: { darkMode: true } }), { background: "#05070b", text: "#ffffff", dark: true }, "night empty = same as day");
+  const fixed = HWDC.normalizeConfig({ color_background: "#f4f4f4", color_text: "#ff0000" });
+  eq(HWDC.effectiveColors(fixed, {}).text, "#ff0000", "own text colour wins");
+});
+
+test("light day background renders dark text, night renders the display", () => {
+  const states = scenario(100, 1, 0, 50, 0.1, 0, 0, 1).states;
+  const day = draw({ ...hassNl(states), themes: { darkMode: false } }, { color_background: "#f4f4f4", color_background_dark: "#05070b" }).svg;
+  ok(day.includes('fill="#f4f4f4"/>') && day.includes('fill="#14161a">100</text>'), "day: light background, dark numbers");
+  const night = draw({ ...hassNl(states), themes: { darkMode: true } }, { color_background: "#f4f4f4", color_background_dark: "#05070b" }).svg;
+  ok(night.includes('fill="#05070b"/>') && night.includes('fill="#ffffff">100</text>'), "night: display black, white numbers");
+});
+
 test("units with markup are escaped", () => {
   const h = scenario(100, 1, 0, 50, 0.1, 0, 0, 1, { "sensor.odd": st(5, "<b>&") });
   const { svg } = draw(h, { top: { source: "entity", entity: "sensor.odd" } });
@@ -481,7 +510,8 @@ test("editor: like the app, only the modes and goals of the chosen source", () =
   ok(mode.required && slot("circle_1").schema[0].required, "source and mode have no clear button");
   const goal = []; walk(slot("bottom").schema, (s) => s.name === "goal_now" && goal.push(s.selector.number.unit_of_measurement));
   eq(goal, ["L/min"]);
-  ok(schema.some((s) => s.name === "color_background"), "background colour visible, not folded away");
+  const bg = schema.find((s) => s.type === "grid" && s.schema.some((x) => x.name === "color_background"));
+  eq(bg && bg.schema.map((x) => x.name), ["color_background", "color_background_dark"], "day and night background visible, not folded away");
 });
 
 test("editor: device and entity slots ask for their sensors", () => {
@@ -520,6 +550,7 @@ test("editor: tidy configuration, new source starts fresh", () => {
   eq(cleaned.circle_2, { source: "battery" });
   eq(cleaned.bottom, { source: "water", mode: "auto" });
   ok(!("color_background" in cleaned), "default background left out");
+  ok(!("color_background_dark" in cleaned) && !("color_text" in cleaned), "empty night background and automatic text left out");
   eq(cleaned.type, "custom:homewizard-display-card");
   // the user sets a goal and a background colour
   const again = HWDC.cleanEditorConfig({ ...HWDC.editorData(cleaned), color_background: "#1C1C1C", circle_2: { source: "battery", goal_now: 80, color: "" } }, cleaned);

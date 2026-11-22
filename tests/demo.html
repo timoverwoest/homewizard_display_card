@@ -45,6 +45,12 @@
         <option value="en">en (20.7)</option>
       </select>
     </label>
+    <label>Theme
+      <select id="theme">
+        <option value="light">light (day)</option>
+        <option value="dark">dark (night)</option>
+      </select>
+    </label>
     <label><input type="checkbox" id="live" checked> live changes</label>
   </div>
   <div class="grid" id="grid"></div>
@@ -181,11 +187,13 @@
       { title: "No data at all", config: { use_energy_settings: false }, states: {} },
       { title: "Fixed height 180 px (sections view, rows set)", config: OWN, states: scenario(1500, 12.3, 4.1, 40, 0.3, 0, -300, 6.0), cls: "fixed" },
       { title: "Narrow, 260 px", config: OWN, states: scenario(-480, 2.1, 0.4, 88, 0.05, 0, -120, 3.3), cls: "narrow" },
+      { title: "Day #f4f4f4 / night #05070b: follows the theme switch above", config: { ...OWN, color_background: "#f4f4f4", color_background_dark: "#05070b" }, states: scenario(1240, 9.6, 4.1, 58, 0.214, 0, -600, 12.6) },
       { title: "Background #1c1c1c and own colours", config: { ...OWN, color_background: "#1c1c1c", color_grid: "#ff9800" }, states: scenario(820, 5.5, 1.2, 52, 0.12, 0, 0, 8.8) },
     ];
 
     const grid = document.getElementById("grid");
     const lang = document.getElementById("lang");
+    const theme = document.getElementById("theme");
     const els = cards.map((c) => {
       const fig = document.createElement("figure");
       const cap = document.createElement("figcaption");
@@ -203,11 +211,13 @@
       language: lang.value,
       locale: { language: lang.value, number_format: "language" },
       config: { time_zone: "Europe/Amsterdam", currency: "EUR" },
+      themes: { darkMode: theme.value === "dark" },
       callWS,
     });
     const update = () => cards.forEach((c, i) => { els[i].hass = hassFor(c); });
     update();
     lang.addEventListener("change", update);
+    theme.addEventListener("change", update);
 
     // Live: grid power wanders and the meters keep counting.
     setInterval(() => {

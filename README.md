@@ -23,7 +23,7 @@ and gas, now, today or in costs.
   right. Delivering (returning to the grid, solar, a battery that discharges) is green: rings fill
   counterclockwise, bars from right to left.
 * **Visual editor** in English and Dutch, set up like the HomeWizard app. Numbers follow the number
-  format of your profile. Background colour of your choice.
+  format of your profile. Background colour of your choice, by day and by night.
 * **One small file, no dependencies.** Fits in a sections view and scales to any width.
 
 The data comes from Home Assistant, for example from the official HomeWizard integration. You
@@ -142,13 +142,25 @@ in both cases. An entity without statistics is shown as it is.
 
 | Option | Default | Used for |
 |--------|---------|----------|
-| `color_background` | `#05070b` (the black of the display) | Background; any hex colour such as `#000000` or `#1c1c1c` |
+| `color_background` | `#05070b` (the black of the display) | Background by day (light theme); any hex colour such as `#000000` or `#f4f4f4` |
+| `color_background_dark` | same as by day | Background by night (dark theme) |
 | `color_grid` | `#a259ff` | Main connection and electricity use |
 | `color_delivery` | `#86d03c` | Delivery: returning, solar, a discharging battery, self-sufficiency |
 | `color_battery` | `#b9d2e0` | Home battery while it does not deliver, and own sensors |
 | `color_water` | `#3d8ff5` | Water |
 | `color_gas` | `#f5a524` | Gas |
-| `color_text` | `#ffffff` | Numbers |
+| `color_text` | automatic | Numbers: white on a dark background, near-black on a light one |
+
+**Day and night.** The card follows the light or dark mode of Home Assistant, like the rest of
+your dashboard: under your profile, **Theme** set to *Auto* follows your device, or choose *Light*
+or *Dark*. In dark mode the card uses `color_background_dark`; leave it empty to keep one
+background. For example a light card by day and the black of the display at night:
+
+```yaml
+type: custom:homewizard-display-card
+color_background: "#f4f4f4"
+color_background_dark: "#05070b"
+```
 
 ### Example
 

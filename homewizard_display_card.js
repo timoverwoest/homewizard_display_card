@@ -55,14 +55,17 @@ const HWDC = (() => {
     "grid_power", "grid_import", "grid_export", "solar_power", "solar_energy",
     "battery_soc", "battery_power", "water", "water_flow", "gas", "gas_flow",
   ];
+  // null = no fixed default: the night background follows the day background, and the text
+  // colour is worked out from the background.
   const COLOR_DEFAULTS = {
     color_background: "#05070b",
+    color_background_dark: null,
     color_grid: "#a259ff",
     color_delivery: "#86d03c",
     color_battery: "#b9d2e0",
     color_water: "#3d8ff5",
     color_gas: "#f5a524",
-    color_text: "#ffffff",
+    color_text: null,
   };
   const COLOR_KEYS = Object.keys(COLOR_DEFAULTS);
   const SIGNS = ["discharge_positive", "charge_positive"];
@@ -83,6 +86,38 @@ const HWDC = (() => {
     }
     if (typeof v === "string" && COLOR_RE.test(v.trim())) return v.trim();
     throw new Error(`${key}: expected a colour such as #05070b`);
+  };
+
+  // Relative luminance (0 = black, 1 = white) of a hex or rgb() colour; null if unknown.
+  const luminance = (color) => {
+    const s = String(color || "").trim().toLowerCase();
+    let rgb = null;
+    const hex = s.match(/^#([0-9a-f]{3,8})$/);
+    if (hex) {
+      const h = hex[1];
+      if (h.length === 3 || h.length === 4) rgb = [0, 1, 2].map((i) => parseInt(h[i] + h[i], 16));
+      else if (h.length === 6 || h.length === 8) rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+    }
+    const fn = s.match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/);
+    if (fn) rgb = [fn[1], fn[2], fn[3]].map(Number);
+    if (s === "white") rgb = [255, 255, 255];
+    if (s === "black") rgb = [0, 0, 0];
+    if (!rgb || rgb.some((n) => !Number.isFinite(n))) return null;
+    const lin = rgb.map((v) => {
+      const c = Math.max(0, Math.min(255, v)) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  };
+
+  // Background and text colour for the current theme: the night background while Home
+  // Assistant shows a dark theme (user profile: Auto follows the device), else the day one.
+  const effectiveColors = (c, hass) => {
+    const dark = Boolean(hass && hass.themes && hass.themes.darkMode);
+    const background = dark && c.color_background_dark ? c.color_background_dark : c.color_background;
+    const lum = luminance(background);
+    const text = c.color_text || (lum !== null && lum > 0.4 ? "#14161a" : "#ffffff");
+    return { background, text, dark };
   };
 
   const normalizeSlot = (key, raw) => {
@@ -534,7 +569,8 @@ const HWDC = (() => {
         goal_today: "Maximum goal today",
         goal_cost: "Maximum goal costs",
         color: "Colour (optional)",
-        color_background: "Background colour",
+        color_background: "Background colour, day (light theme)",
+        color_background_dark: "Background colour, night (dark theme)",
         sources: "Sensors",
         grid_power: "Grid power",
         grid_import: "Grid import meter(s)",
@@ -558,7 +594,9 @@ const HWDC = (() => {
         color_text: "Text",
       },
       helpers: {
-        color_background: "Hex colour, for example #05070b (default, the black of the display) or #1c1c1c",
+        color_background: "Hex colour; default #05070b, the black of the display",
+        color_background_dark: "Used while Home Assistant shows a dark theme; empty = same as day",
+        color_text: "Empty = automatic: white on a dark background, black on a light one",
         sources: "Leave empty to use the Energy settings",
         grid_power: "Positive = taking from the grid, negative = returning",
         grid_import: "Total meter or daily meter; today's value comes from the statistics",
@@ -597,7 +635,8 @@ const HWDC = (() => {
         goal_today: "Maximaal doel vandaag",
         goal_cost: "Maximaal doel kosten",
         color: "Kleur (optioneel)",
-        color_background: "Achtergrondkleur",
+        color_background: "Achtergrondkleur dag (licht thema)",
+        color_background_dark: "Achtergrondkleur nacht (donker thema)",
         sources: "Sensoren",
         grid_power: "Netvermogen",
         grid_import: "Afnamemeter(s) net",
@@ -621,7 +660,9 @@ const HWDC = (() => {
         color_text: "Tekst",
       },
       helpers: {
-        color_background: "Hex-kleur, bijvoorbeeld #05070b (standaard, het zwart van het display) of #1c1c1c",
+        color_background: "Hex-kleur; standaard #05070b, het zwart van het display",
+        color_background_dark: "Gebruikt zolang Home Assistant een donker thema toont; leeg = zelfde als overdag",
+        color_text: "Leeg = automatisch: wit op een donkere achtergrond, zwart op een lichte",
         sources: "Leeg laten = uit de Energie-instellingen",
         grid_power: "Positief = afname van het net, negatief = teruglevering",
         grid_import: "Totaalmeter of dagteller; de waarde van vandaag komt uit de statistieken",
@@ -849,8 +890,10 @@ const HWDC = (() => {
     return s + bar(596, y + 32, 184, view.frac, view.color, view.ccw);
   };
 
-  const renderSvg = (m, c, fmt, lang, hass, today) => {
+  const renderSvg = (m, config, fmt, lang, hass, today) => {
     const T = TEXT[pickLang(lang)];
+    const eff = effectiveColors(config, hass);
+    const c = { ...config, color_background: eff.background, color_text: eff.text };
     const parts = [];
     const spoken = [];
     for (const key of SLOTS) {
@@ -964,7 +1007,14 @@ const HWDC = (() => {
     });
     return [
       ...SLOTS.map(slotSchema),
-      { name: "color_background", selector: { text: {} } },
+      {
+        type: "grid",
+        name: "",
+        schema: [
+          { name: "color_background", selector: { text: {} } },
+          { name: "color_background_dark", selector: { text: {} } },
+        ],
+      },
       {
         name: "sources",
         type: "expandable",
@@ -997,7 +1047,7 @@ const HWDC = (() => {
         schema: [{
           type: "grid",
           name: "",
-          schema: COLOR_KEYS.filter((k) => k !== "color_background").map((name) => ({ name, selector: { text: {} } })),
+          schema: COLOR_KEYS.filter((k) => !k.startsWith("color_background")).map((name) => ({ name, selector: { text: {} } })),
         }],
       },
     ];
@@ -1048,6 +1098,7 @@ const HWDC = (() => {
 
   return {
     VERSION, TAG, EDITOR_TAG, SOURCES, SLOTS, SLOT_DEFAULTS, COLOR_DEFAULTS, ENTITY_KEYS, TEXT,
+    luminance, effectiveColors,
     normalizeConfig, normalizeSlot, sourcesFromPrefs, resolveSources, needsCosts, meterIds, slotMeterIds, convert,
     stateValue, gasKind, fetchToday, todayValue, computeModel, msToNextRefresh, dayKey, numberLocale,
     formatter, pickLang, editorLang, slotView, formatView, renderSvg, editorData, editorSchema,
@@ -1162,7 +1213,7 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
             "</style><ha-card></ha-card>";
         }
         const card = this.shadowRoot.querySelector("ha-card");
-        card.style.setProperty("--hwdc-background", this._config.color_background);
+        card.style.setProperty("--hwdc-background", HWDC.effectiveColors(this._config, hass).background);
         card.innerHTML = svg;
       } catch (e) {
         console.warn(`${HWDC.TAG}:`, e);
