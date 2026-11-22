@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+* **Charts like the HomeWizard app.** A second view with charts of water, gas, the main
+  connection, solar, electricity use, self-sufficiency, standby use, the home battery and sensors
+  of your own, per day, week, month or year, with ‹ › to go back in time and the value under the
+  pointer.
+* **Switch button on the card** to toggle between the display and the charts. Options `view`,
+  `show_view_switch`, `charts`, `chart_entities` and `period`.
+* **Same size as the display.** Each chart fills the frame of the display; scroll from chart to
+  chart.
+* **README** links to HomeWizard and the HomeWizard Energy Display.
+
 ## v0.3.0 - 2026-11-22
 
 * **Background suggestions.** The editor suggests light `#f4f5f7` by day and dark grey `#1c1c1c`

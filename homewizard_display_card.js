@@ -80,6 +80,10 @@ const HWDC = (() => {
   // Suggestions in the editor. The default stays the black of the display, by day and by night.
   const BACKGROUND_SUGGESTIONS = { display: "#05070b", day: "#f4f5f7", night: "#1c1c1c" };
   const SIGNS = ["discharge_positive", "charge_positive"];
+  // Charts view: the charts of the HomeWizard app, in the app's order, and its periods.
+  const VIEWS = ["display", "charts"];
+  const CHARTS = ["water", "gas", "grid", "solar", "consumption", "self_sufficiency", "standby", "battery"];
+  const PERIODS = ["day", "week", "month", "year"];
   // A colour ends up inside an SVG attribute, so only plain CSS colour syntax is accepted.
   const COLOR_RE = /^[#a-zA-Z0-9(),.%\s-]{1,64}$/;
 
@@ -185,6 +189,17 @@ const HWDC = (() => {
     c.use_energy_settings = config.use_energy_settings !== false;
     for (const key of COLOR_KEYS) c[key] = empty(config[key]) ? COLOR_DEFAULTS[key] : toColor(key, config[key]);
     for (const key of SLOTS) c[key] = normalizeSlot(key, config[key]);
+    // Charts view, like the charts of the HomeWizard app.
+    c.view = empty(config.view) ? "display" : config.view;
+    if (!VIEWS.includes(c.view)) throw new Error(`view: expected ${VIEWS.join(" or ")}`);
+    c.charts = toList(config.charts);
+    for (const k of c.charts) {
+      if (!CHARTS.includes(k)) throw new Error(`charts: unknown chart "${k}"; expected ${CHARTS.join(", ")}`);
+    }
+    c.chart_entities = toList(config.chart_entities);
+    c.show_view_switch = config.show_view_switch !== false;
+    c.period = empty(config.period) ? "day" : config.period;
+    if (!PERIODS.includes(c.period)) throw new Error(`period: expected ${PERIODS.join(", ")}`);
     return c;
   };
 
@@ -580,6 +595,12 @@ const HWDC = (() => {
       labels: {
         source: "Show",
         mode: "Mode",
+        view: "Card view",
+        show_view_switch: "Button on the card to switch between display and charts",
+        charts_group: "Charts",
+        charts: "Charts to show",
+        chart_entities: "Own sensors as charts",
+        period: "Start period",
         entity: "Sensor",
         power: "Power sensor",
         energy: "Energy meter",
@@ -615,6 +636,8 @@ const HWDC = (() => {
         color_background: "Pick a suggestion or type your own hex colour",
         color_background_dark: "While Home Assistant shows a dark theme; empty = same as day",
         color_text: "Empty = automatic: white on a dark background, black on a light one",
+        charts: "None selected = every chart there is data for",
+        chart_entities: "For example a temperature or humidity",
         sources: "Leave empty to use the Energy settings",
         grid_power: "Positive = taking from the grid, negative = returning",
         grid_import: "Total meter or daily meter; today's value comes from the statistics",
@@ -627,6 +650,7 @@ const HWDC = (() => {
         energy: "Total meter in kWh; today's value comes from the statistics",
       },
       sign: { discharge_positive: "Positive = discharging (Home Assistant standard)", charge_positive: "Positive = charging (e.g. HomeWizard Plug-In Battery)" },
+      view: { display: "Display (Usage Overview)", charts: "Charts (like the HomeWizard app)" },
       bg: {
         display: "Black of the display #05070b (default)",
         day: "Light #f4f5f7: fits a light theme",
@@ -651,6 +675,12 @@ const HWDC = (() => {
       labels: {
         source: "Grafiek",
         mode: "Weergave",
+        view: "Weergave van de kaart",
+        show_view_switch: "Knop op de kaart om te wisselen tussen display en grafieken",
+        charts_group: "Grafieken",
+        charts: "Grafieken om te tonen",
+        chart_entities: "Eigen sensoren als grafiek",
+        period: "Startperiode",
         entity: "Sensor",
         power: "Vermogenssensor",
         energy: "Energiemeter",
@@ -686,6 +716,8 @@ const HWDC = (() => {
         color_background: "Kies een voorstel of typ een eigen hex-kleur",
         color_background_dark: "Zolang Home Assistant een donker thema toont; leeg = zelfde als overdag",
         color_text: "Leeg = automatisch: wit op een donkere achtergrond, zwart op een lichte",
+        charts: "Niets gekozen = alle grafieken waarvoor gegevens zijn",
+        chart_entities: "Bijvoorbeeld een temperatuur of luchtvochtigheid",
         sources: "Leeg laten = uit de Energie-instellingen",
         grid_power: "Positief = afname van het net, negatief = teruglevering",
         grid_import: "Totaalmeter of dagteller; de waarde van vandaag komt uit de statistieken",
@@ -698,6 +730,7 @@ const HWDC = (() => {
         energy: "Totaalmeter in kWh; de waarde van vandaag komt uit de statistieken",
       },
       sign: { discharge_positive: "Positief = ontladen (standaard van Home Assistant)", charge_positive: "Positief = laden (bijv. HomeWizard Plug-In Battery)" },
+      view: { display: "Display (Usage Overview)", charts: "Grafieken (zoals de HomeWizard-app)" },
       bg: {
         display: "Zwart van het display #05070b (standaard)",
         day: "Licht #f4f5f7: past bij een licht thema",
@@ -721,6 +754,8 @@ const HWDC = (() => {
     self_sufficiency: "M18.1 9.32L19.65 6L15.5 5.64C16.1 6.15 16.63 6.78 17.05 7.5C17.37 8.05 17.58 8.63 17.73 9.22C17.18 9.08 16.6 9 16 9C15.86 9 15.72 9 15.58 9C14.81 7.25 13.06 6 11 6C8.24 6 6 8.24 6 11C6 13.06 7.25 14.81 9 15.58C9 15.72 9 15.86 9 16C9 19.87 12.13 23 16 23S23 19.87 23 16C23 12.87 20.94 10.21 18.1 9.32M8 11C8 9.35 9.35 8 11 8C12.08 8 13.03 8.58 13.56 9.45C11.66 10.15 10.15 11.66 9.45 13.56C8.58 13.03 8 12.08 8 11M16 21C13.24 21 11 18.76 11 16S13.24 11 16 11 21 13.24 21 16 18.76 21 16 21M16.5 16.25L19.36 17.94L18.61 19.16L15 17V12H16.5V16.25M11 4C10.16 4 9.35 4.15 8.61 4.42L11 1L13.39 4.42C12.65 4.15 11.84 4 11 4M4.95 14.5C5.37 15.24 5.91 15.86 6.5 16.37L2.36 16L4.12 12.23C4.26 13 4.53 13.78 4.95 14.5M4.11 9.79L2.34 6L6.5 5.65C5.9 6.16 5.36 6.78 4.94 7.5C4.5 8.24 4.25 9 4.11 9.79Z",
     temperature: "M15 13V5A3 3 0 0 0 9 5V13A5 5 0 1 0 15 13M12 4A1 1 0 0 1 13 5V8H11V5A1 1 0 0 1 12 4Z",
     humidity: "M12,3.25C12,3.25 6,10 6,14C6,17.32 8.69,20 12,20A6,6 0 0,0 18,14C18,10 12,3.25 12,3.25M14.47,9.97L15.53,11.03L9.53,17.03L8.47,15.97M9.75,10A1.25,1.25 0 0,1 11,11.25A1.25,1.25 0 0,1 9.75,12.5A1.25,1.25 0 0,1 8.5,11.25A1.25,1.25 0 0,1 9.75,10M14.25,14.5A1.25,1.25 0 0,1 15.5,15.75A1.25,1.25 0 0,1 14.25,17A1.25,1.25 0 0,1 13,15.75A1.25,1.25 0 0,1 14.25,14.5Z",
+    to_charts: "M17.45,15.18L22,7.31V19L22,21H2V3H4V15.54L9.5,6L16,9.78L20.24,2.45L21.97,3.45L16.74,12.5L10.23,8.75L4.31,19H6.57L10.96,11.44L17.45,15.18Z",
+    to_display: "M21,16V4H3V16H21M21,2A2,2 0 0,1 23,4V16A2,2 0 0,1 21,18H14V20H16V22H8V20H10V18H3C1.89,18 1,17.1 1,16V4C1,2.89 1.89,2 3,2H21M5,6H14V11H5V6M15,6H19V8H15V6M19,9V14H15V9H19M5,12H9V14H5V12M10,12H14V14H10V12Z",
     entity: "M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12C20,14.4 19,16.5 17.3,18C15.9,16.7 14,16 12,16C10,16 8.2,16.7 6.7,18C5,16.5 4,14.4 4,12A8,8 0 0,1 12,4M14,5.89C13.62,5.9 13.26,6.15 13.1,6.54L11.81,9.77L11.71,10C11,10.13 10.41,10.6 10.14,11.26C9.73,12.29 10.23,13.45 11.26,13.86C12.29,14.27 13.45,13.77 13.86,12.74C14.12,12.08 14,11.32 13.57,10.76L13.67,10.5L14.96,7.29L14.97,7.26C15.17,6.75 14.92,6.17 14.41,5.96C14.28,5.91 14.15,5.89 14,5.89M10,6A1,1 0 0,0 9,7A1,1 0 0,0 10,8A1,1 0 0,0 11,7A1,1 0 0,0 10,6M7,9A1,1 0 0,0 6,10A1,1 0 0,0 7,11A1,1 0 0,0 8,10A1,1 0 0,0 7,9M17,9A1,1 0 0,0 16,10A1,1 0 0,0 17,11A1,1 0 0,0 18,10A1,1 0 0,0 17,9Z",
   };
   const BATTERY_DELIVERY_W = 20; // below this the battery counts as idle (standby noise)
@@ -949,6 +984,512 @@ const HWDC = (() => {
       `<rect width="800" height="480" fill="${c.color_background}"/>${parts.join("")}</svg>`;
   };
 
+  // ---------------------------------------------------------------- charts view
+
+  const CHART_TEXT = {
+    en: {
+      title: {
+        water: "Water", gas: "Gas", grid: "Main connection", solar: "Solar panels", consumption: "Electricity use",
+        self_sufficiency: "Self-sufficient", standby: "Standby use", battery: "Home battery",
+      },
+      period: { day: "Day", week: "Week", month: "Month", year: "Year" },
+      today: "Today", yesterday: "Yesterday", week: "Week", none: "No data", loading: "Loading…",
+    },
+    nl: {
+      title: {
+        water: "Water", gas: "Gasverbruik", grid: "Hoofdaansluiting", solar: "Zonnepanelen", consumption: "Stroomverbruik",
+        self_sufficiency: "Zelfvoorzienend", standby: "Standby-verbruik", battery: "Thuisaccu",
+      },
+      period: { day: "Dag", week: "Week", month: "Maand", year: "Jaar" },
+      today: "Vandaag", yesterday: "Gisteren", week: "Week", none: "Geen gegevens", loading: "Laden…",
+    },
+  };
+  const STAT_PERIOD = { day: "5minute", week: "hour", month: "day", year: "month" };
+  const CHART_ICON = {
+    water: "water", gas: "gas", grid: "grid", solar: "solar", consumption: "consumption",
+    self_sufficiency: "self_sufficiency", standby: "consumption", battery: "battery",
+  };
+
+  // Date parts of moment t in time zone tz (weekday 0 = Monday).
+  const tzFormatters = {};
+  const tzParts = (t, tz) => {
+    const key = tz || "UTC";
+    if (!tzFormatters[key]) {
+      const opts = {
+        hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric",
+        hour: "numeric", minute: "numeric", second: "numeric", weekday: "short",
+      };
+      try {
+        tzFormatters[key] = new Intl.DateTimeFormat("en-US", { ...opts, timeZone: key });
+      } catch (e) {
+        tzFormatters[key] = new Intl.DateTimeFormat("en-US", { ...opts, timeZone: "UTC" });
+      }
+    }
+    const p = {};
+    for (const part of tzFormatters[key].formatToParts(new Date(t))) p[part.type] = part.value;
+    return {
+      y: Number(p.year), m: Number(p.month), d: Number(p.day), h: Number(p.hour) % 24,
+      mi: Number(p.minute), s: Number(p.second), wd: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(p.weekday),
+    };
+  };
+  const tzOffset = (t, tz) => {
+    const p = tzParts(t, tz);
+    return Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi, p.s) - Math.floor(t / 1000) * 1000;
+  };
+  // Moment of local midnight y-m-d in tz. Month and day may overflow, like Date.UTC. Correcting
+  // twice also gets the days of a clock change right.
+  const zonedMidnight = (y, m, d, tz) => {
+    const guess = Date.UTC(y, m - 1, d);
+    const t = guess - tzOffset(guess, tz);
+    return guess - tzOffset(t, tz);
+  };
+
+  // Start, end and buckets of a period. offset 0 = the current day/week/month/year, 1 = the one
+  // before. statPeriod may be "hour" for a day that has no 5-minute statistics any more.
+  const periodRange = (period, offset, now, tz, statPeriod) => {
+    const p = tzParts(now, tz);
+    const sp = statPeriod || STAT_PERIOD[period];
+    let start;
+    let end;
+    let buckets = [];
+    if (period === "day") {
+      start = zonedMidnight(p.y, p.m, p.d - offset, tz);
+      end = zonedMidnight(p.y, p.m, p.d - offset + 1, tz);
+    } else if (period === "week") {
+      const d0 = p.d - p.wd - 7 * offset;
+      start = zonedMidnight(p.y, p.m, d0, tz);
+      end = zonedMidnight(p.y, p.m, d0 + 7, tz);
+    } else if (period === "month") {
+      start = zonedMidnight(p.y, p.m - offset, 1, tz);
+      end = zonedMidnight(p.y, p.m - offset + 1, 1, tz);
+      const s = tzParts(start + 12 * 3600000, tz);
+      for (let i = 0; ; i += 1) {
+        const t = zonedMidnight(s.y, s.m, 1 + i, tz);
+        if (t >= end) break;
+        buckets.push(t);
+      }
+    } else {
+      start = zonedMidnight(p.y - offset, 1, 1, tz);
+      end = zonedMidnight(p.y - offset + 1, 1, 1, tz);
+      for (let i = 0; i < 12; i += 1) buckets.push(zonedMidnight(p.y - offset, 1 + i, 1, tz));
+    }
+    if (period === "day" || period === "week") {
+      const step = sp === "5minute" ? 300000 : 3600000;
+      for (let t = start; t < end; t += step) buckets.push(t);
+    }
+    return { period, offset, start, end, buckets, statPeriod: sp, now };
+  };
+
+  const bucketHours = (range, i) => ((range.buckets[i + 1] !== undefined ? range.buckets[i + 1] : range.end) - range.buckets[i]) / 3600000;
+
+  // Statistics for a period: "change" for meters and costs, "mean" for state of charge and own
+  // sensors. Short-term statistics are kept about ten days; an older day falls back to hours.
+  const fetchSeries = async (hass, range, changeIds, meanIds) => {
+    const call = async (r, ids, types, units) => {
+      if (!ids.length) return {};
+      try {
+        return (await hass.callWS({
+          type: "recorder/statistics_during_period",
+          start_time: new Date(r.start).toISOString(),
+          end_time: new Date(r.end).toISOString(),
+          statistic_ids: ids,
+          period: r.statPeriod,
+          types,
+          units,
+        })) || {};
+      } catch (e) {
+        return {};
+      }
+    };
+    let r = range;
+    let change = await call(r, changeIds, ["change"], STAT_UNITS);
+    let mean = await call(r, meanIds, ["mean"], { power: "W" });
+    const nothing = (o) => Object.values(o).every((rows) => !rows || !rows.length);
+    if (r.period === "day" && r.statPeriod === "5minute" && nothing(change) && nothing(mean) && (changeIds.length || meanIds.length)) {
+      r = periodRange("day", r.offset, r.now, null, "hour");
+      r = { ...r, start: range.start, end: range.end, buckets: [] };
+      for (let t = range.start; t < range.end; t += 3600000) r.buckets.push(t);
+      change = await call(r, changeIds, ["change"], STAT_UNITS);
+      mean = await call(r, meanIds, ["mean"], { power: "W" });
+    }
+    return { range: r, change, mean };
+  };
+
+  // One statistic as an array over the buckets (null = no data).
+  const seriesOf = (rows, buckets, field) => {
+    const index = new Map(buckets.map((t, i) => [t, i]));
+    const out = new Array(buckets.length).fill(null);
+    for (const row of rows || []) {
+      const t = typeof row.start === "number" ? row.start : Date.parse(row.start);
+      const i = index.get(t);
+      if (i !== undefined && Number.isFinite(row[field])) out[i] = row[field];
+    }
+    return out;
+  };
+  const addSeries = (list, n) => {
+    const out = new Array(n).fill(null);
+    for (const s of list) s.forEach((v, i) => { if (v !== null) out[i] = (out[i] === null ? 0 : out[i]) + v; });
+    return out;
+  };
+  const total = (s) => sumOf(s);
+  const percentile = (values, q) => {
+    const v = values.filter((x) => x !== null).sort((a, b) => a - b);
+    if (!v.length) return null;
+    return v[Math.min(v.length - 1, Math.floor(q * v.length))];
+  };
+
+  // Which charts to show: the configured list, or every chart that has data, in the app's order.
+  const chartList = (config, src) => {
+    const has = {
+      water: src.water.length > 0,
+      gas: src.gas.length > 0,
+      grid: src.gridImport.length > 0,
+      solar: src.solar.length > 0,
+      consumption: src.gridImport.length > 0,
+      self_sufficiency: src.gridImport.length > 0 && (src.solar.length > 0 || src.batteryOut.length > 0),
+      standby: src.gridImport.length > 0,
+      battery: src.batterySoc.length > 0 || src.batteryOut.length > 0,
+    };
+    const keys = config.charts.length ? config.charts : CHARTS.filter((k) => has[k]);
+    const list = keys.filter((k) => k !== "battery").map((k) => ({ key: k }));
+    for (const entity of config.chart_entities) list.push({ key: "entity", entity });
+    if (keys.includes("battery")) list.push({ key: "battery" });
+    return list;
+  };
+
+  const chartStatIds = (charts, src) => {
+    const change = new Set();
+    const mean = new Set();
+    const add = (set, ids) => ids.forEach((id) => set.add(id));
+    for (const ch of charts) {
+      if (ch.key === "water") add(change, [...src.water, ...src.waterCost]);
+      if (ch.key === "gas") add(change, [...src.gas, ...src.gasCost]);
+      if (ch.key === "grid") add(change, [...src.gridImport, ...src.gridExport, ...src.gridCost, ...src.gridCompensation]);
+      if (ch.key === "solar") add(change, src.solar);
+      if (["consumption", "self_sufficiency", "standby"].includes(ch.key)) {
+        add(change, [...src.gridImport, ...src.gridExport, ...src.solar, ...src.batteryIn, ...src.batteryOut, ...src.homeEnergy]);
+      }
+      if (ch.key === "battery") {
+        add(change, [...src.batteryIn, ...src.batteryOut]);
+        add(mean, src.batterySoc);
+      }
+      if (ch.key === "entity") mean.add(ch.entity);
+    }
+    return { change: [...change], mean: [...mean] };
+  };
+
+  // The data of one chart: series to draw, header values, cost and axis.
+  // kind "area": average power per bucket (day view); "bars": amount per bucket; "line": a level.
+  const chartData = (chart, data, src, c, hass) => {
+    const range = data.range;
+    const n = range.buckets.length;
+    const ch = (ids) => addSeries(ids.map((id) => seriesOf(data.change[id], range.buckets, "change")), n);
+    const dayView = range.period === "day";
+    const toPower = (s) => s.map((v, i) => (v === null ? null : (v / bucketHours(range, i)) * 1000));
+    const energy = (s) => (dayView ? { values: toPower(s), unit: "W" } : { values: s, unit: "kWh" });
+    const cost = (plus, minus) => {
+      const a = total(ch(plus));
+      const b = total(ch(minus || []));
+      return a === null && b === null ? null : (a || 0) - (b || 0);
+    };
+    const imp = ch(src.gridImport);
+    const exp = ch(src.gridExport);
+    const sol = ch(src.solar);
+    const consumption = () => {
+      if (src.homeEnergy.length) return ch(src.homeEnergy);
+      const bin = ch(src.batteryIn);
+      const bout = ch(src.batteryOut);
+      return imp.map((v, i) => (v === null ? null
+        : Math.max(0, v - (exp[i] || 0) + (sol[i] || 0) + (bout[i] || 0) - (bin[i] || 0))));
+    };
+    const base = { key: chart.key, icon: CHART_ICON[chart.key], cost: null };
+    switch (chart.key) {
+      case "water": {
+        const w = ch(src.water);
+        return { ...base, kind: "bars", unit: "L", decimals: 0, series: [{ values: w, color: c.color_water, arrow: "↓" }],
+          header: [{ arrow: "↓", value: total(w), unit: "L", decimals: 0, color: c.color_water }], cost: cost(src.waterCost) };
+      }
+      case "gas": {
+        const energyGas = src.gas.length > 0 && gasKind(hass, src.gas[0]) === "energy";
+        const g = ch(src.gas).map((v) => (v === null ? null : energyGas ? v : v / 1000));
+        const unit = energyGas ? "kWh" : "m³";
+        return { ...base, kind: "bars", unit, decimals: 2, series: [{ values: g, color: c.color_gas, arrow: "↓" }],
+          header: [{ arrow: "↓", value: total(g), unit, decimals: 2, color: c.color_gas }], cost: cost(src.gasCost) };
+      }
+      case "grid": {
+        const a = energy(imp);
+        const b = energy(exp);
+        return { ...base, kind: dayView ? "area" : "bars", unit: a.unit, decimals: dayView ? 0 : 2,
+          series: [{ values: b.values, color: c.color_delivery, arrow: "↑" }, { values: a.values, color: c.color_grid, arrow: "↓" }],
+          header: [
+            { arrow: "↓", value: total(imp), unit: "kWh", decimals: 1, color: c.color_grid },
+            { arrow: "↑", value: total(exp), unit: "kWh", decimals: 1, color: c.color_delivery },
+          ],
+          cost: cost(src.gridCost, src.gridCompensation) };
+      }
+      case "solar": {
+        const s = energy(sol);
+        return { ...base, kind: dayView ? "area" : "bars", unit: s.unit, decimals: dayView ? 0 : 2,
+          series: [{ values: s.values, color: c.color_delivery, arrow: "↑" }],
+          header: [{ arrow: "↑", value: total(sol), unit: "kWh", decimals: 1, color: c.color_delivery }] };
+      }
+      case "consumption": {
+        const u = consumption();
+        const e = energy(u);
+        return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
+          series: [{ values: e.values, color: c.color_grid, arrow: "↓" }],
+          header: [{ arrow: "↓", value: total(u), unit: "kWh", decimals: 1, color: c.color_grid }] };
+      }
+      case "self_sufficiency": {
+        const u = consumption();
+        const own = u.map((v, i) => (v === null ? null : Math.max(0, v - (imp[i] || 0))));
+        const e = energy(u);
+        const o = energy(own);
+        return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
+          // Own energy (solar, battery) in the delivery colour of the card, like on the display.
+          series: [{ values: e.values, color: c.color_grid, arrow: "↓" }, { values: o.values, color: c.color_delivery, arrow: "⇅" }],
+          header: [
+            { arrow: "⇅", value: total(own), unit: "", decimals: 1, color: c.color_delivery },
+            { arrow: "↓", value: total(imp), unit: "", decimals: 1, color: c.color_grid },
+            { arrow: "↑", value: total(exp), unit: "kWh", decimals: 1, color: c.color_delivery },
+          ] };
+      }
+      case "standby": {
+        // Standby: the lowest power the house keeps using (5th percentile of the averages).
+        const u = consumption();
+        const w = toPower(u);
+        const standbyW = percentile(w, 0.05);
+        const hours = u.reduce((h, v, i) => (v === null ? h : h + bucketHours(range, i)), 0);
+        const band = u.map((v, i) => (v === null || standbyW === null ? null
+          : dayView ? standbyW : (standbyW * bucketHours(range, i)) / 1000));
+        const e = energy(u);
+        return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
+          series: [{ values: e.values, color: c.color_grid, faint: true }, { values: band, color: c.color_grid, arrow: "↓" }],
+          header: [{ arrow: "↓", value: standbyW === null ? null : (standbyW * hours) / 1000, unit: "kWh", decimals: 1, color: c.color_grid }],
+          note: standbyW === null ? null : standbyW };
+      }
+      case "battery": {
+        const socs = src.batterySoc.map((id) => seriesOf(data.mean[id], range.buckets, "mean"));
+        const soc = range.buckets.map((_, i) => {
+          const v = socs.map((s) => s[i]).filter((x) => x !== null);
+          return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+        });
+        const now = src.batterySoc.map((id) => stateValue(hass, id, "raw")).filter((v) => v !== null);
+        return { ...base, kind: "line", unit: "%", decimals: 0, min: 0, max: 100,
+          series: [{ values: soc, color: c.color_battery }],
+          header: [
+            { arrow: "↓", value: total(ch(src.batteryIn)), unit: "", decimals: 1, color: c.color_grid },
+            { arrow: "↑", value: total(ch(src.batteryOut)), unit: "kWh", decimals: 1, color: c.color_delivery },
+          ],
+          corner: now.length ? `${Math.round(now.reduce((a, b) => a + b, 0) / now.length)} %` : null };
+      }
+      default: {
+        // Own sensor, for example a temperature: its average per bucket as a line.
+        const id = chart.entity;
+        const st = entityOf(hass, id);
+        const dc = st && st.attributes ? st.attributes.device_class : undefined;
+        const color = dc === "temperature" ? c.color_gas : dc === "humidity" ? c.color_water : c.color_battery;
+        const unit = unitOf(hass, id) || "";
+        const v = stateValue(hass, id, "raw");
+        return { ...base, key: "entity", icon: dc === "temperature" ? "temperature" : dc === "humidity" ? "humidity" : "entity",
+          title: (st && st.attributes && st.attributes.friendly_name) || id, kind: "line", unit, decimals: 1,
+          series: [{ values: seriesOf(data.mean[id], range.buckets, "mean"), color }],
+          header: [{ arrow: "", value: v, unit, decimals: 1, color }] };
+      }
+    }
+  };
+
+  // Round axis: about five steps of 1, 2, 2.5 or 5 times a power of ten.
+  const niceAxis = (lo, hi) => {
+    let min = Math.min(lo, hi);
+    let max = Math.max(lo, hi);
+    if (max === min) max = min + (min === 0 ? 1 : Math.abs(min) * 0.1);
+    const raw = (max - min) / 5;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((s) => s >= raw);
+    min = Math.floor(min / step) * step;
+    max = Math.ceil(max / step) * step;
+    const ticks = [];
+    for (let t = min; t <= max + step / 2; t += step) ticks.push(Number(t.toFixed(10)));
+    return { min, max, step, ticks };
+  };
+
+  const periodLabel = (range, lang, tz) => {
+    const T = CHART_TEXT[pickLang(lang)];
+    const loc = pickLang(lang) === "nl" ? "nl-NL" : "en-GB";
+    const mid = new Date(range.start + (range.end - range.start) / 2);
+    const fmtDate = (opts) => {
+      try {
+        return new Intl.DateTimeFormat(loc, { ...opts, timeZone: tz || "UTC" }).format(mid);
+      } catch (e) {
+        return new Intl.DateTimeFormat(loc, opts).format(mid);
+      }
+    };
+    if (range.period === "day") {
+      if (range.offset === 0) return T.today;
+      if (range.offset === 1) return T.yesterday;
+      return fmtDate({ weekday: "short", day: "numeric", month: "short" });
+    }
+    if (range.period === "week") {
+      const p = tzParts(range.start + 12 * 3600000, tz);
+      const d = new Date(Date.UTC(p.y, p.m - 1, p.d + 3)); // Thursday decides the ISO week
+      const jan4 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+      const week = 1 + Math.round(((d - jan4) / 86400000 - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7);
+      return `${T.week} ${week}`;
+    }
+    if (range.period === "month") return fmtDate({ month: "long", year: "numeric" });
+    return fmtDate({ year: "numeric" });
+  };
+
+  // Labels under the x axis: [time, text].
+  const xLabels = (range, lang, tz) => {
+    const loc = pickLang(lang) === "nl" ? "nl-NL" : "en-GB";
+    const fmt = (t, opts) => {
+      try {
+        return new Intl.DateTimeFormat(loc, { ...opts, timeZone: tz || "UTC" }).format(new Date(t));
+      } catch (e) {
+        return new Intl.DateTimeFormat(loc, opts).format(new Date(t));
+      }
+    };
+    if (range.period === "day") return [2, 7, 12, 17, 22].map((h) => [range.start + h * 3600000, `${String(h).padStart(2, "0")}:00`]);
+    if (range.period === "week") {
+      const out = [];
+      for (let i = 0; i < 7; i += 1) {
+        const t = range.start + i * 86400000 + 12 * 3600000;
+        out.push([t, fmt(t, { weekday: "short" })]);
+      }
+      return out;
+    }
+    if (range.period === "month") {
+      return range.buckets.map((t, i) => [t + 12 * 3600000, i + 1]).filter(([, d]) => d === 1 || d % 5 === 0).map(([t, d]) => [t, String(d)]);
+    }
+    return range.buckets.map((t) => [t + 15 * 86400000, fmt(t + 15 * 86400000, { month: "short" }).replace(".", "")]);
+  };
+
+  // A chart tile as SVG, 800 wide and as tall as the frame it fills (default 260), in the style
+  // of the HomeWizard app.
+  const renderChartTile = (chart, range, fmt, c, lang, tz, uid, height) => {
+    const H = Math.max(200, Math.round(height || 260));
+    const CH = { x0: 16, x1: 744, top: 92, bottom: H - 36, width: 800, height: H };
+    const T = CHART_TEXT[pickLang(lang)];
+    const parts = [];
+    const sub = c.color_text;
+    const span = range.end - range.start;
+    const xAt = (t) => CH.x0 + ((t - range.start) / span) * (CH.x1 - CH.x0);
+    const n = range.buckets.length;
+    const centers = range.buckets.map((t, i) => xAt(t + ((range.buckets[i + 1] !== undefined ? range.buckets[i + 1] : range.end) - t) / 2));
+
+    // Header: coloured totals with arrows, title, cost and icon.
+    let hx = 18;
+    for (const h of chart.header) {
+      const num = h.value === null ? "–" : fmt(h.value, h.decimals).text;
+      if (h.arrow) {
+        parts.push(text(hx, 44, 22, h.color, h.arrow));
+        hx += h.arrow === "⇅" ? 24 : 16; // the double arrow is wider
+      }
+      parts.push(text(hx, 44, 30, h.color, esc(num)));
+      hx += num.length * 30 * 0.56 + 4;
+      if (h.unit) {
+        parts.push(text(hx, 44, 14, sub, esc(h.unit), undefined, 0.7));
+        hx += h.unit.length * 14 * 0.6 + 10;
+      } else {
+        hx += 10;
+      }
+    }
+    parts.push(text(18, 68, 14, sub, esc(chart.title || T.title[chart.key])));
+    const corner = chart.corner || (chart.cost !== null && chart.cost !== undefined
+      ? `${fmt.currency || "€"} ${fmt(chart.cost, 2).text}` : null);
+    if (corner) parts.push(text(744, 34, 14, sub, esc(corner), "end", 0.7));
+    parts.push(`<path transform="translate(756 14) scale(1.15)" fill="${sub}" d="${ICONS[chart.icon] || ICONS.entity}"/>`);
+
+    // Axis.
+    const values = chart.series.flatMap((s) => s.values).filter((v) => v !== null);
+    const lo = chart.min !== undefined ? chart.min : chart.kind === "line" && values.length ? Math.min(...values) : 0;
+    const hi = chart.max !== undefined ? chart.max : values.length ? Math.max(...values) : 1;
+    const axis = niceAxis(lo, hi > lo ? hi : lo + 1);
+    const yAt = (v) => CH.bottom - ((v - axis.min) / (axis.max - axis.min)) * (CH.bottom - CH.top);
+    for (const t of axis.ticks) {
+      const y = yAt(t).toFixed(1);
+      parts.push(`<line x1="${CH.x0}" y1="${y}" x2="${CH.x1}" y2="${y}" stroke="${sub}" stroke-opacity="0.08"/>`);
+      // Enough decimals for the step: 0.25 → 2, 0.002 → 3.
+      const dec = axis.step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(axis.step) + (String(axis.step).includes("25") ? 1 : 0) - 1e-9));
+      parts.push(text(790, Number(y) + 4, 11, sub, esc(fmt(t, dec).text), "end", 0.55));
+    }
+    for (const [t, label] of xLabels(range, lang, tz)) {
+      parts.push(text(xAt(t).toFixed(1), H - 12, 11, sub, esc(label), "middle", 0.55));
+    }
+
+    // Series.
+    const defs = [];
+    chart.series.forEach((s, si) => {
+      const id = `g${uid}-${si}`;
+      if (chart.kind === "area") {
+        defs.push(`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.color}" stop-opacity="${s.faint ? 0.35 : 0.9}"/><stop offset="1" stop-color="${s.color}" stop-opacity="${s.faint ? 0.1 : 0.15}"/></linearGradient>`);
+        let seg = [];
+        const flush = () => {
+          if (seg.length) {
+            const line = seg.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join("");
+            parts.push(`<path d="${line}L${seg[seg.length - 1][0].toFixed(1)} ${CH.bottom}L${seg[0][0].toFixed(1)} ${CH.bottom}Z" fill="url(#${id})"/>`);
+            if (!s.faint) parts.push(`<path d="${line}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`);
+          }
+          seg = [];
+        };
+        s.values.forEach((v, i) => { if (v === null) flush(); else seg.push([centers[i], yAt(Math.max(axis.min, v))]); });
+        flush();
+      } else if (chart.kind === "bars") {
+        const w = Math.max(1, ((CH.x1 - CH.x0) / n) * 0.7);
+        s.values.forEach((v, i) => {
+          if (v === null || v <= 0) return;
+          const y = yAt(v);
+          parts.push(`<rect x="${(centers[i] - w / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${(CH.bottom - y).toFixed(1)}" rx="${Math.min(2, w / 2).toFixed(1)}" fill="${s.color}"${s.faint ? ' fill-opacity="0.35"' : ""}/>`);
+        });
+      } else {
+        let seg = [];
+        const flush = () => {
+          if (seg.length) parts.push(`<path d="${seg.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join("")}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round"/>`);
+          seg = [];
+        };
+        s.values.forEach((v, i) => { if (v === null) flush(); else seg.push([centers[i], yAt(v)]); });
+        flush();
+      }
+    });
+    if (!values.length) parts.push(text(380, Math.round((CH.top + CH.bottom) / 2), 14, sub, esc(T.none), "middle", 0.5));
+    // Pointer line and label, moved by the card.
+    parts.push(`<g class="hover" visibility="hidden"><line x1="0" y1="${CH.top - 8}" x2="0" y2="${CH.bottom}" stroke="${sub}" stroke-opacity="0.6"/><text x="0" y="${CH.top - 14}" text-anchor="middle" ${FONT} font-size="13" fill="${sub}"></text></g>`);
+
+    // What the pointer shows per bucket.
+    const lc = pickLang(lang) === "nl" ? "nl-NL" : "en-GB";
+    const when = (t) => {
+      const opts = range.period === "day" || range.period === "week"
+        ? { weekday: range.period === "week" ? "short" : undefined, hour: "2-digit", minute: "2-digit" }
+        : range.period === "month" ? { day: "numeric", month: "short" } : { month: "long" };
+      try {
+        return new Intl.DateTimeFormat(lc, { ...opts, timeZone: tz || "UTC" }).format(new Date(t));
+      } catch (e) {
+        return new Intl.DateTimeFormat(lc, opts).format(new Date(t));
+      }
+    };
+    // Each series with its arrow; zeros left out unless everything is zero.
+    const labels = range.buckets.map((t, i) => {
+      const vals = chart.series.filter((s) => !s.faint).map((s) => [s.arrow || "", s.values[i]]).filter(([, v]) => v !== null);
+      if (!vals.length) return null;
+      const shown = vals.some(([, v]) => v !== 0) ? vals.filter(([, v]) => v !== 0) : vals.slice(0, 1);
+      return `${when(t)}  ${shown.map(([a, v]) => `${a}${fmt(v, chart.decimals).text}`).join("  ")} ${chart.unit}`.trim();
+    });
+    const svg = `<svg viewBox="0 0 ${CH.width} ${CH.height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(chart.title || T.title[chart.key])}"><defs>${defs.join("")}</defs>${parts.join("")}</svg>`;
+    return { svg, meta: { centers: centers.map((x) => Number(x.toFixed(1))), labels } };
+  };
+
+  // The whole charts view: period label and one tile per chart.
+  const renderCharts = (state, config, fmt, lang, hass, height) => {
+    const tz = hass && hass.config ? hass.config.time_zone : undefined;
+    const eff = effectiveColors(config, hass);
+    const c = { ...config, ...eff.accents, color_background: eff.background, color_text: eff.text };
+    const label = periodLabel(state.data.range, lang, tz);
+    const tiles = state.charts.map((chart, i) => renderChartTile(chartData(chart, state.data, state.sources, c, hass), state.data.range, fmt, c, lang, tz, `${state.uid || "c"}${i}`, height));
+    return { label, tiles, colors: eff };
+  };
+
   // ---------------------------------------------------------------- editor
 
   // Slot as the editor shows it: defaults filled in, never throws.
@@ -970,6 +1511,10 @@ const HWDC = (() => {
     if (empty(data.color_background)) data.color_background = COLOR_DEFAULTS.color_background;
     // Show the defaults, so the switch is on and the sign is filled in when the config is empty.
     data.use_energy_settings = config.use_energy_settings !== false;
+    data.show_view_switch = config.show_view_switch !== false;
+    if (empty(data.view)) data.view = "display";
+    if (empty(data.period)) data.period = "day";
+    data.charts = toList(config.charts);
     if (empty(data.battery_power_sign)) data.battery_power_sign = SIGNS[0];
     return data;
   };
@@ -1033,7 +1578,16 @@ const HWDC = (() => {
         },
       },
     });
+    const C = CHART_TEXT[pickLang(lang)];
     return [
+      {
+        type: "grid",
+        name: "",
+        schema: [
+          { name: "view", required: true, selector: { select: { mode: "dropdown", options: VIEWS.map((v) => ({ value: v, label: T.view[v] })) } } },
+          { name: "show_view_switch", selector: { boolean: {} } },
+        ],
+      },
       ...SLOTS.map(slotSchema),
       {
         type: "grid",
@@ -1048,6 +1602,17 @@ const HWDC = (() => {
             { value: BACKGROUND_SUGGESTIONS.display, label: T.bg.display },
             { value: BACKGROUND_SUGGESTIONS.night, label: T.bg.night },
           ] } } },
+        ],
+      },
+      {
+        name: "charts_group",
+        type: "expandable",
+        flatten: true,
+        icon: "mdi:chart-areaspline",
+        schema: [
+          { name: "charts", selector: { select: { multiple: true, mode: "list", options: CHARTS.map((k) => ({ value: k, label: C.title[k] })) } } },
+          { name: "chart_entities", selector: { entity: { multiple: true, filter: { domain: "sensor" } } } },
+          { name: "period", required: true, selector: { select: { mode: "dropdown", options: PERIODS.map((p) => ({ value: p, label: C.period[p] })) } } },
         ],
       },
       {
@@ -1121,6 +1686,10 @@ const HWDC = (() => {
     }
     if (out.battery_power_sign === SIGNS[0]) delete out.battery_power_sign;
     if (out.use_energy_settings !== false) delete out.use_energy_settings;
+    if (out.show_view_switch !== false) delete out.show_view_switch;
+    if (out.view === "display") delete out.view;
+    if (out.period === "day") delete out.period;
+    for (const key of ["charts", "chart_entities"]) if (toList(out[key]).length === 0) delete out[key];
     return out;
   };
 
@@ -1134,6 +1703,9 @@ const HWDC = (() => {
   return {
     VERSION, TAG, EDITOR_TAG, SOURCES, SLOTS, SLOT_DEFAULTS, COLOR_DEFAULTS, ENTITY_KEYS, TEXT,
     luminance, effectiveColors, LIGHT_ACCENTS, BACKGROUND_SUGGESTIONS,
+    VIEWS, CHARTS, PERIODS, tzParts, zonedMidnight, periodRange, bucketHours, fetchSeries, seriesOf,
+    chartList, chartStatIds, chartData, niceAxis, periodLabel, xLabels, renderChartTile, renderCharts,
+    CHART_TEXT, ICONS,
     normalizeConfig, normalizeSlot, sourcesFromPrefs, resolveSources, needsCosts, meterIds, slotMeterIds, convert,
     stateValue, gasKind, fetchToday, todayValue, computeModel, msToNextRefresh, dayKey, numberLocale,
     formatter, pickLang, editorLang, slotView, formatView, renderSvg, editorData, editorSchema,
@@ -1144,6 +1716,37 @@ const HWDC = (() => {
 // ------------------------------------------------------------------ custom elements
 
 if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined") {
+  const STYLE =
+    ":host{display:block;height:100%}" +
+    "ha-card{position:relative;height:100%;box-sizing:border-box;overflow:hidden;" +
+    "background:var(--hwdc-background);color:var(--hwdc-text)}" +
+    ".svg{display:flex;align-items:center;justify-content:center;width:100%;height:100%}" +
+    ".svg svg{display:block;width:100%;height:100%}" +
+    ".switch{position:absolute;top:6px;right:6px;z-index:1;width:32px;height:32px;padding:6px;border:0;" +
+    "border-radius:50%;background:transparent;color:var(--hwdc-text);opacity:.55;cursor:pointer}" +
+    ".switch:hover,.switch:focus-visible{opacity:1;background:color-mix(in srgb,var(--hwdc-text) 14%,transparent)}" +
+    ".switch svg{display:block;width:20px;height:20px;fill:currentColor}" +
+    // 5:3 like the display. min-height 0: no content-based minimum that would stretch the card.
+    ".charts{display:flex;flex-direction:column;padding:8px;aspect-ratio:5/3;width:100%;min-height:0}" +
+    ".bar{flex:none;display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:0 34px 6px 0;font:600 13px/1.2 Roboto,Noto,sans-serif}" +
+    ".dots{display:inline-flex;gap:4px;margin:0 4px}" +
+    ".dots button{width:6px;height:6px;padding:0;border:0;border-radius:50%;background:var(--hwdc-text);opacity:.25;cursor:pointer}" +
+    ".dots button.on{opacity:.9}" +
+    ".nav{width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:20px;cursor:pointer}" +
+    ".nav:disabled{opacity:.25;cursor:default}" +
+    ".label{min-width:5.5em;text-align:center}" +
+    ".tabs{display:inline-flex;gap:2px;margin-left:auto;padding:2px;border-radius:16px;" +
+    "background:color-mix(in srgb,var(--hwdc-text) 8%,transparent)}" +
+    ".tabs button{border:0;border-radius:14px;padding:4px 8px;background:transparent;color:inherit;font:inherit;cursor:pointer}" +
+    ".tabs button.on{background:color-mix(in srgb,var(--hwdc-text) 18%,transparent);font-weight:700}" +
+    ".tiles{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;" +
+    "scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none}" +
+    ".tiles::-webkit-scrollbar{display:none}" +
+    ".tile{flex:none;height:100%;scroll-snap-align:start;border-radius:12px;overflow:hidden;touch-action:pan-y;" +
+    "background:color-mix(in srgb,var(--hwdc-text) 4%,var(--hwdc-background))}" +
+    ".tile svg{display:block;width:100%;height:100%}" +
+    ".wait{padding:24px;text-align:center;opacity:.6;font:14px Roboto,Noto,sans-serif}";
+
   class HomeWizardDisplayCard extends HTMLElement {
     static getConfigElement() {
       return document.createElement(HWDC.EDITOR_TAG);
@@ -1154,8 +1757,16 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
     }
 
     setConfig(config) {
+      const before = this._config;
       this._config = HWDC.normalizeConfig(config);
+      if (!before || before.view !== this._config.view) this._view = this._config.view;
+      if (!before || before.period !== this._config.period) {
+        this._period = this._config.period;
+        this._offset = 0;
+      }
       this._svg = "";
+      this._chartsKey = "";
+      this._root = null;
       if (this._hass && this.isConnected) this._refresh();
       else this._render();
     }
@@ -1181,16 +1792,38 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       this._run = (this._run || 0) + 1; // a refresh that is still running stops scheduling
     }
 
-    // Reloads the Energy settings and today's statistics, then plans the next refresh.
+    // Switch between the display and the charts, from the button on the card.
+    _toggleView() {
+      this._view = this._view === "charts" ? "display" : "charts";
+      this._svg = "";
+      this._chartsKey = "";
+      this._chart = null;
+      this._render();
+      this._refresh();
+    }
+
+    _setPeriod(period, offset) {
+      this._keepIndex = this._currentIndex(); // stay on the same chart
+      this._period = period;
+      this._offset = Math.max(0, offset);
+      this._chart = null;
+      this._chartsKey = "";
+      this._render();
+      this._refresh();
+    }
+
+    // Reloads the Energy settings and the statistics for the view, then plans the next refresh.
     async _refresh() {
       if (!this._hass || !this._config) return;
       clearTimeout(this._timer);
       const run = (this._run = (this._run || 0) + 1);
       const hass = this._hass;
       const config = this._config;
-      const day = HWDC.dayKey(Date.now(), hass.config && hass.config.time_zone);
+      const charts = this._view === "charts";
+      const tz = hass.config && hass.config.time_zone;
+      const day = HWDC.dayKey(Date.now(), tz);
       this._loadingDay = day;
-      const costs = HWDC.needsCosts(config);
+      const costs = charts || HWDC.needsCosts(config);
       let prefs = null;
       let info = null;
       if (config.use_energy_settings) {
@@ -1208,19 +1841,83 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         }
       }
       const sources = HWDC.resolveSources(config, prefs, info);
-      let today = {};
-      try {
-        const ids = [...new Set([...HWDC.meterIds(sources, costs), ...HWDC.slotMeterIds(config)])];
-        today = await HWDC.fetchToday(hass, ids, Date.now());
-      } catch (e) {
-        console.warn(`${HWDC.TAG}:`, e);
+      if (charts) {
+        const period = this._period;
+        const offset = this._offset;
+        const range = HWDC.periodRange(period, offset, Date.now(), tz);
+        const list = HWDC.chartList(config, sources);
+        const ids = HWDC.chartStatIds(list, sources);
+        let data = { range, change: {}, mean: {} };
+        try {
+          data = await HWDC.fetchSeries(hass, range, ids.change, ids.mean);
+        } catch (e) {
+          console.warn(`${HWDC.TAG}:`, e);
+        }
+        if (run !== this._run || period !== this._period || offset !== this._offset) return;
+        this._sources = sources;
+        this._chart = { charts: list, data, sources };
+      } else {
+        let today = {};
+        try {
+          const ids = [...new Set([...HWDC.meterIds(sources, costs), ...HWDC.slotMeterIds(config)])];
+          today = await HWDC.fetchToday(hass, ids, Date.now());
+        } catch (e) {
+          console.warn(`${HWDC.TAG}:`, e);
+        }
+        if (run !== this._run) return;
+        this._sources = sources;
+        this._today = today;
       }
-      if (run !== this._run) return;
-      this._sources = sources;
-      this._today = today;
       this._day = day;
-      this._timer = setTimeout(() => this._refresh(), HWDC.msToNextRefresh(Date.now()));
+      if (!charts || this._offset === 0) {
+        this._timer = setTimeout(() => this._refresh(), HWDC.msToNextRefresh(Date.now()));
+      }
       this._render();
+    }
+
+    // Builds the shadow DOM for a view once; later renders only change the content.
+    _ensureRoot(view) {
+      if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+      if (this._root === view) return;
+      this._root = view;
+      const sw = this._config.show_view_switch ? '<button class="switch" type="button"></button>' : "";
+      if (view === "charts") {
+        const tabs = HWDC.PERIODS.map((p) => `<button type="button" data-p="${p}"></button>`).join("");
+        this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card class="charts">${sw}` +
+          `<div class="bar"><button class="nav prev" type="button">‹</button><span class="label"></span>` +
+          `<button class="nav next" type="button">›</button><span class="dots"></span><span class="tabs">${tabs}</span></div>` +
+          '<div class="tiles"></div></ha-card>';
+        const root = this.shadowRoot;
+        root.querySelector(".prev").addEventListener("click", () => this._setPeriod(this._period, this._offset + 1));
+        root.querySelector(".next").addEventListener("click", () => this._setPeriod(this._period, this._offset - 1));
+        root.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => this._setPeriod(b.dataset.p, 0)));
+        const tiles = root.querySelector(".tiles");
+        tiles.addEventListener("pointermove", (e) => this._hover(e));
+        tiles.addEventListener("pointerdown", (e) => this._hover(e));
+        tiles.addEventListener("pointerleave", () => this._hover(null));
+        tiles.addEventListener("scroll", () => this._markDot(), { passive: true });
+        root.querySelector(".dots").addEventListener("click", (e) => {
+          const i = e.target && e.target.dataset ? Number(e.target.dataset.i) : NaN;
+          const tile = root.querySelectorAll(".tile")[i];
+          if (tile) tiles.scrollTo({ top: tile.offsetTop - tiles.offsetTop, behavior: "smooth" });
+        });
+        // Redraw when the frame changes size, so each chart keeps filling it.
+        if (typeof ResizeObserver !== "undefined") {
+          this._resize = new ResizeObserver(() => {
+            if (this._tileHeight() !== this._lastTileHeight) {
+              this._chartsKey = "";
+              this._render();
+            }
+          });
+          this._resize.observe(tiles);
+        }
+      } else {
+        if (this._resize) this._resize.disconnect();
+        this._resize = null;
+        this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card class="display">${sw}<div class="svg"></div></ha-card>`;
+      }
+      const button = this.shadowRoot.querySelector(".switch");
+      if (button) button.addEventListener("click", (e) => { e.stopPropagation(); this._toggleView(); });
     }
 
     _render() {
@@ -1228,35 +1925,135 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       try {
         const hass = this._hass;
         const day = HWDC.dayKey(Date.now(), hass.config && hass.config.time_zone);
-        if (this._day && day !== this._day && this._loadingDay !== day && this.isConnected) {
+        const today = this._view !== "charts" || this._offset === 0;
+        if (today && this._day && day !== this._day && this._loadingDay !== day && this.isConnected) {
           this._refresh(); // a new day started: fetch the new statistics
         }
-        const sources = this._sources || HWDC.resolveSources(this._config, null, null);
-        const model = HWDC.computeModel(hass, sources, this._today || {});
         const lang = (hass.locale && hass.locale.language) || hass.language;
-        const svg = HWDC.renderSvg(model, this._config, HWDC.formatter(hass), lang, hass, this._today || {});
-        if (svg === this._svg) return;
-        this._svg = svg;
-        if (!this.shadowRoot) {
-          this.attachShadow({ mode: "open" });
-          this.shadowRoot.innerHTML =
-            "<style>" +
-            ":host{display:block;height:100%}" +
-            "ha-card{display:flex;align-items:center;justify-content:center;height:100%;" +
-            "box-sizing:border-box;overflow:hidden;background:var(--hwdc-background)}" +
-            "svg{display:block;width:100%;height:100%}" +
-            "</style><ha-card></ha-card>";
-        }
+        const nl = HWDC.pickLang(lang) === "nl";
+        this._ensureRoot(this._view);
         const card = this.shadowRoot.querySelector("ha-card");
-        card.style.setProperty("--hwdc-background", HWDC.effectiveColors(this._config, hass).background);
-        card.innerHTML = svg;
+        const eff = HWDC.effectiveColors(this._config, hass);
+        card.style.setProperty("--hwdc-background", eff.background);
+        card.style.setProperty("--hwdc-text", eff.text);
+        const button = this.shadowRoot.querySelector(".switch");
+        if (button) {
+          const toCharts = this._view !== "charts";
+          const title = toCharts ? (nl ? "Grafieken tonen" : "Show charts") : (nl ? "Display tonen" : "Show display");
+          button.title = title;
+          button.setAttribute("aria-label", title);
+          button.innerHTML = `<svg viewBox="0 0 24 24"><path d="${toCharts ? HWDC.ICONS.to_charts : HWDC.ICONS.to_display}"/></svg>`;
+        }
+        if (this._view === "charts") this._renderCharts(hass, lang);
+        else this._renderDisplay(hass, lang);
       } catch (e) {
         console.warn(`${HWDC.TAG}:`, e);
       }
     }
 
+    _renderDisplay(hass, lang) {
+      const sources = this._sources || HWDC.resolveSources(this._config, null, null);
+      const model = HWDC.computeModel(hass, sources, this._today || {});
+      const svg = HWDC.renderSvg(model, this._config, HWDC.formatter(hass), lang, hass, this._today || {});
+      if (svg === this._svg) return;
+      this._svg = svg;
+      this.shadowRoot.querySelector(".svg").innerHTML = svg;
+    }
+
+    _renderCharts(hass, lang) {
+      const root = this.shadowRoot;
+      const T = HWDC.CHART_TEXT[HWDC.pickLang(lang)];
+      root.querySelectorAll(".tabs button").forEach((b) => {
+        b.textContent = T.period[b.dataset.p];
+        b.classList.toggle("on", b.dataset.p === this._period);
+      });
+      root.querySelector(".next").disabled = this._offset === 0;
+      const tiles = root.querySelector(".tiles");
+      if (!this._chart) {
+        if (this._chartsKey !== "wait") {
+          this._chartsKey = "wait";
+          root.querySelector(".label").textContent = "";
+          tiles.innerHTML = `<div class="wait">${T.loading}</div>`;
+        }
+        return;
+      }
+      const height = this._tileHeight();
+      const out = HWDC.renderCharts(this._chart, this._config, HWDC.formatter(hass), lang, hass, height);
+      const key = height + out.label + out.tiles.map((t) => t.svg).join("");
+      if (key === this._chartsKey) return;
+      this._chartsKey = key;
+      this._lastTileHeight = height;
+      root.querySelector(".label").textContent = out.label;
+      const keep = tiles.scrollTop;
+      tiles.innerHTML = out.tiles.map((t, i) => `<div class="tile" data-i="${i}">${t.svg}</div>`).join("") ||
+        `<div class="wait">${T.none}</div>`;
+      const first = tiles.querySelector(".tile");
+      tiles.scrollTop = this._keepIndex !== null && this._keepIndex !== undefined && first
+        ? this._keepIndex * (first.offsetHeight + 8) : keep;
+      this._keepIndex = null;
+      this._tileMeta = out.tiles.map((t) => t.meta);
+      root.querySelector(".dots").innerHTML = out.tiles.length > 1
+        ? out.tiles.map((_, i) => `<button type="button" data-i="${i}" aria-label="${i + 1}"></button>`).join("") : "";
+      this._markDot();
+    }
+
+    // Height of one chart in SVG units, so it fills the frame at 800 wide.
+    _tileHeight() {
+      const tiles = this.shadowRoot && this.shadowRoot.querySelector(".tiles");
+      if (!tiles || !tiles.clientWidth || !tiles.clientHeight) return 400;
+      return Math.max(200, Math.min(1200, Math.round((800 * tiles.clientHeight) / tiles.clientWidth)));
+    }
+
+    // Index of the chart in view.
+    _currentIndex() {
+      const tiles = this.shadowRoot && this.shadowRoot.querySelector(".tiles");
+      const first = tiles && tiles.querySelector(".tile");
+      return first ? Math.round(tiles.scrollTop / (first.offsetHeight + 8)) : 0;
+    }
+
+    // Which chart is in view: highlight its dot.
+    _markDot() {
+      const i = this._currentIndex();
+      this.shadowRoot.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", k === i));
+    }
+
+    // Line and value under the pointer, like the app.
+    _hover(e) {
+      const root = this.shadowRoot;
+      const tile = e && e.target && e.target.closest ? e.target.closest(".tile") : null;
+      root.querySelectorAll(".tile .hover").forEach((g) => {
+        if (!tile || !tile.contains(g)) g.setAttribute("visibility", "hidden");
+      });
+      if (!tile || !this._tileMeta) return;
+      const meta = this._tileMeta[Number(tile.dataset.i)];
+      const svg = tile.querySelector("svg");
+      if (!meta || !svg) return;
+      const r = svg.getBoundingClientRect();
+      const x = ((e.clientX - r.left) / r.width) * 800;
+      let best = -1;
+      let dist = Infinity;
+      meta.centers.forEach((cx, i) => {
+        if (meta.labels[i] === null) return;
+        const d = Math.abs(cx - x);
+        if (d < dist) {
+          dist = d;
+          best = i;
+        }
+      });
+      const g = svg.querySelector(".hover");
+      if (best < 0 || !g) return;
+      const cx = meta.centers[best];
+      const line = g.querySelector("line");
+      line.setAttribute("x1", cx);
+      line.setAttribute("x2", cx);
+      const label = g.querySelector("text");
+      label.setAttribute("x", Math.max(130, Math.min(670, cx)));
+      label.textContent = meta.labels[best];
+      g.setAttribute("visibility", "visible");
+    }
+
     getCardSize() {
-      return 6;
+      return this._view === "charts" ? 4 * Math.max(1, (this._chart && this._chart.charts.length) || 6) : 6;
     }
 
     getGridOptions() {

@@ -4,9 +4,10 @@
 
 <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/logo.png" alt="Logo: een klein scherm met één grote ring, twee kleine ringen en drie balkjes" width="96" align="right">
 
-Een dashboardkaart voor Home Assistant die het scherm **Usage Overview** van het HomeWizard Energy
-Display nabouwt: drie cirkels en drie regels met stroom, zon, thuisaccu, water en gas, nu, vandaag
-of in kosten.
+Een dashboardkaart voor Home Assistant die het scherm **Usage Overview** van het
+[HomeWizard Energy Display](https://www.homewizard.com/nl/energy-display/) nabouwt: drie cirkels en
+drie regels met stroom, zon, thuisaccu, water en gas, nu, vandaag of in kosten. Met één tik op de
+kaart wissel je naar **grafieken** zoals die van de HomeWizard Energy-app.
 
 <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot.png" alt="Standaardindeling bij afname van het net: paarse ring met 1240 W, accu op 58 % die levert, 12,6 kWh zon vandaag, 214 liter water vandaag" width="49%"> <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-export.png" alt="Standaardindeling bij teruglevering: groene ring met -2150 W, accu op 88 % die laadt, 14,2 kWh zon vandaag, water loopt met 7,5 L/min" width="49%">
 
@@ -25,6 +26,10 @@ of in kosten.
   balkjes van rechts naar links.
 * **Visuele editor** in het Nederlands en Engels, ingedeeld zoals de HomeWizard-app. Getallen
   volgen de getalnotatie van je profiel. Achtergrondkleur naar keuze, voor dag en nacht.
+* **Grafieken zoals de HomeWizard-app.** De knop in de hoek van de kaart wisselt naar grafieken
+  van water, gas, de hoofdaansluiting, zon, stroomverbruik, zelfvoorzienend, standby-verbruik,
+  de thuisaccu en eigen sensoren, per dag, week, maand of jaar. Elke grafiek vult hetzelfde kader
+  als het display; je scrolt van grafiek naar grafiek.
 * **Eén klein bestand, geen afhankelijkheden.** Past in een secties-weergave en schaalt mee met
   elke breedte.
 
@@ -119,6 +124,35 @@ Elke plek krijgt `source`, `mode` en de doelen die bij die weergave horen.
   *vandaag* wat je vandaag terugleverde.
 * Een doel is de waarde waarbij de ring of het balkje vol is. Met `color` krijgt één cirkel of
   regel een eigen kleur.
+
+### Grafieken
+
+<img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-charts.png" alt="Grafiekenweergave: periodebalk met Vandaag en Dag, Week, Maand, Jaar, en twee van de grafieken: de hoofdaansluiting met vandaag 16,5 kWh afname en 0,1 kWh teruglevering, en zelfvoorzienend met de eigen zonne-energie in groen" width="60%">
+
+Tik op de knop rechtsboven in de kaart om te wisselen tussen het display en de grafieken, zoals de
+wisselknoppen op het Energie-dashboard. De kaart houdt de afmeting van het display: elke grafiek
+vult het kader en je scrolt (muiswiel of vegen) van de ene grafiek naar de volgende; de bolletjes
+laten zien waar je bent. Boven de grafieken kies je **Dag**, **Week**, **Maand** of **Jaar**, en
+met ‹ en › ga je terug in de tijd. Wijs een grafiek aan of tik erop om de waarde op dat moment te
+zien.
+
+* **Dag** toont het gemiddelde vermogen per 5 minuten als vlak, zoals de app. Week, maand en jaar
+  tonen kWh (of liters, m³) per uur, dag of maand als staafjes.
+* De grafieken gebruiken dezelfde kleuren als het display: paars voor afname van het net en
+  stroomverbruik, groen voor teruglevering, zon en je eigen energie (zelfvoorzienend), blauw voor
+  water, oranje voor gas.
+* **Standby-verbruik** is het vermogen dat je huis altijd blijft gebruiken: de laagste 5 % van de
+  gemiddelden in de periode.
+* Alles komt uit de statistieken van Home Assistant, met dezelfde bronnen als het display. Home
+  Assistant bewaart 5-minutenstatistieken ongeveer tien dagen; oudere dagen worden per uur getoond.
+
+| Optie | Standaard | Uitleg |
+|-------|-----------|--------|
+| `view` | `display` | Wat de kaart eerst toont: `display` of `charts`. |
+| `show_view_switch` | `true` | De knop op de kaart om tussen de twee te wisselen. |
+| `charts` | alle met gegevens | Welke grafieken, in deze volgorde: `water`, `gas`, `grid`, `solar`, `consumption`, `self_sufficiency`, `standby`, `battery`. |
+| `chart_entities` | geen | Eigen sensoren als extra grafiek, bijvoorbeeld een temperatuur of luchtvochtigheid. |
+| `period` | `day` | De periode waarmee de grafieken beginnen: `day`, `week`, `month` of `year`. |
 
 ### Sensoren
 
@@ -255,7 +289,9 @@ een nagemaakte Home Assistant met demowaarden.
 
 ## Credits en disclaimer
 
-Geïnspireerd op het HomeWizard Energy Display. HomeWizard en HomeWizard Energy zijn merken van
+Geïnspireerd op het [HomeWizard Energy Display](https://www.homewizard.com/nl/energy-display/) en
+de grafieken van de [HomeWizard Energy-app](https://hwenergy.app).
+[HomeWizard](https://www.homewizard.com/nl/) en HomeWizard Energy zijn merken van
 HomeWizard B.V. Dit is een onafhankelijk communityproject; het heeft geen formele band met
 HomeWizard en wordt niet door HomeWizard goedgekeurd of gesponsord. Het logo is een eigen ontwerp
 en niet het logo van HomeWizard.

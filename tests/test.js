@@ -571,6 +571,156 @@ test("editor: tidy configuration, new source starts fresh", () => {
   eq(HWDC.cleanEditorConfig({ top: { source: "grid", mode: "auto" } }, { top: { source: "grid" } }).top.mode, "now");
 });
 
+// ------------------------------------------------------------------ charts view
+
+const TZ = "Europe/Amsterdam";
+const NOW = Date.UTC(2026, 10, 22, 13, 0, 0); // Sunday 22 November 2026, 14:00 in Amsterdam
+
+test("charts options in the configuration", () => {
+  const c = HWDC.normalizeConfig({});
+  eq([c.view, c.charts, c.chart_entities, c.period, c.show_view_switch], ["display", [], [], "day", true]);
+  const d = HWDC.normalizeConfig({ view: "charts", charts: ["grid", "water"], chart_entities: "sensor.room", period: "week", show_view_switch: false });
+  eq([d.view, d.charts, d.chart_entities, d.period, d.show_view_switch], ["charts", ["grid", "water"], ["sensor.room"], "week", false]);
+  throws(() => HWDC.normalizeConfig({ view: "pie" }), /view/);
+  throws(() => HWDC.normalizeConfig({ charts: ["wind"] }), /charts/);
+  throws(() => HWDC.normalizeConfig({ period: "hour" }), /period/);
+});
+
+test("periods in the server time zone", () => {
+  const day = HWDC.periodRange("day", 0, NOW, TZ);
+  eq([new Date(day.start).toISOString(), day.buckets.length, day.statPeriod], ["2026-11-21T23:00:00.000Z", 288, "5minute"]);
+  const yesterday = HWDC.periodRange("day", 1, NOW, TZ);
+  eq(new Date(yesterday.start).toISOString(), "2026-11-20T23:00:00.000Z");
+  const week = HWDC.periodRange("week", 0, NOW, TZ);
+  eq([new Date(week.start).toISOString(), week.buckets.length], ["2026-11-15T23:00:00.000Z", 168], "Monday 16 November");
+  const month = HWDC.periodRange("month", 1, NOW, TZ);
+  eq([new Date(month.start).toISOString(), month.buckets.length], ["2026-09-30T22:00:00.000Z", 31], "October, still summer time at the start");
+  const year = HWDC.periodRange("year", 0, NOW, TZ);
+  eq([new Date(year.start).toISOString(), year.buckets.length], ["2025-12-31T23:00:00.000Z", 12]);
+  eq(HWDC.periodRange("day", 0, Date.UTC(2026, 2, 29, 12), TZ).buckets.length, 276, "spring forward: 23 hours");
+  eq(HWDC.periodRange("day", 0, Date.UTC(2026, 9, 25, 12), TZ).buckets.length, 300, "fall back: 25 hours");
+  eq(HWDC.periodLabel(week, "nl", TZ), "Week 47");
+  eq(HWDC.periodLabel(day, "en", TZ), "Today");
+  eq(HWDC.periodLabel(yesterday, "nl", TZ), "Gisteren");
+  eq(HWDC.periodLabel(month, "nl", TZ), "oktober 2026");
+});
+
+test("statistics rows land in the right bucket", () => {
+  const r = HWDC.periodRange("day", 0, NOW, TZ);
+  const rows = [{ start: r.start, change: 0.1 }, { start: new Date(r.start + 300000).toISOString(), change: 0.2 }, { start: r.start + 1, change: 9 }];
+  const s = HWDC.seriesOf(rows, r.buckets, "change");
+  eq([s[0], s[1], s[2]], [0.1, 0.2, null], "ms and ISO starts; unaligned rows ignored");
+});
+
+test("charts follow the available sources, in the app's order", () => {
+  const src = HWDC.resolveSources(HWDC.normalizeConfig({}), PREFS, INFO);
+  eq(HWDC.chartList(HWDC.normalizeConfig({ chart_entities: ["sensor.room"] }), src).map((ch) => ch.entity || ch.key),
+    ["water", "gas", "grid", "solar", "consumption", "self_sufficiency", "standby", "sensor.room", "battery"]);
+  eq(HWDC.chartList(HWDC.normalizeConfig({ charts: ["grid", "battery"] }), src).map((ch) => ch.key), ["grid", "battery"]);
+  const ids = HWDC.chartStatIds([{ key: "grid" }, { key: "battery" }, { key: "entity", entity: "sensor.room" }], src);
+  ok(ids.change.includes("sensor.import_t1_cost") && ids.change.includes("sensor.bat_out"));
+  eq(ids.mean, ["sensor.bat_soc", "sensor.bat2_soc", "sensor.room"]);
+});
+
+const chartFixture = (period) => {
+  const range = HWDC.periodRange(period, 0, NOW, TZ);
+  const at = (i) => range.buckets[i];
+  const change = {
+    "sensor.import_t1": [{ start: at(0), change: 0.1 }, { start: at(1), change: 0.05 }],
+    "sensor.export_t1": [{ start: at(1), change: 0.02 }],
+    "sensor.solar_total": [{ start: at(1), change: 0.06 }],
+    "sensor.import_t1_cost": [{ start: at(0), change: 0.03 }],
+    "sensor.water_total": [{ start: at(0), change: 12 }],
+  };
+  const mean = { "sensor.bat_soc": [{ start: at(0), mean: 40 }], "sensor.bat2_soc": [{ start: at(0), mean: 60 }] };
+  return { range, change, mean };
+};
+const chartColors = HWDC.normalizeConfig({});
+
+test("day view: energy per 5 minutes becomes average power", () => {
+  const data = chartFixture("day");
+  const src = HWDC.resolveSources(chartColors, PREFS, INFO);
+  const g = HWDC.chartData({ key: "grid" }, data, src, chartColors, hassNl({}));
+  eq([g.kind, g.unit], ["area", "W"]);
+  near(g.series[1].values[0], 1200, "0.1 kWh in 5 minutes = 1200 W");
+  near(g.series[0].values[1], 240, "export 0.02 kWh = 240 W");
+  near(g.header[0].value, 0.15);
+  near(g.cost, 0.03);
+  eq(g.series[1].color, "#a259ff");
+  const self = HWDC.chartData({ key: "self_sufficiency" }, data, src, chartColors, hassNl({}));
+  eq(self.series[1].color, "#86d03c", "own energy in the delivery colour of the card");
+  near(self.header[0].value, 0.04, "own = use 0.05-0.02+0.06 = 0.09 minus import 0.05");
+  const w = HWDC.chartData({ key: "water" }, data, src, chartColors, hassNl({}));
+  eq([w.kind, w.unit, w.series[0].values[0], w.header[0].value], ["bars", "L", 12, 12]);
+  const b = HWDC.chartData({ key: "battery" }, data, src, chartColors, hassNl({}));
+  eq([b.kind, b.series[0].values[0], b.min, b.max], ["line", 50, 0, 100], "average of two batteries");
+});
+
+test("week view: kWh bars; standby from the lowest use", () => {
+  const data = chartFixture("week");
+  const src = HWDC.resolveSources(chartColors, PREFS, INFO);
+  const g = HWDC.chartData({ key: "grid" }, data, src, chartColors, hassNl({}));
+  eq([g.kind, g.unit, g.series[1].values[0]], ["bars", "kWh", 0.1]);
+  const sb = HWDC.chartData({ key: "standby" }, chartFixture("day"), src, chartColors, hassNl({}));
+  near(sb.note, 1080, "5th percentile of 1200 W and 1080 W");
+});
+
+test("own sensor chart: line with current value and name", () => {
+  const data = { range: HWDC.periodRange("day", 0, NOW, TZ), change: {}, mean: { "sensor.room": [] } };
+  const h = hassNl({ "sensor.room": st(21.4, "°C", { device_class: "temperature", friendly_name: "Woonkamer" }) });
+  const e = HWDC.chartData({ key: "entity", entity: "sensor.room" }, data, HWDC.resolveSources(chartColors, null, null), chartColors, h);
+  eq([e.kind, e.title, e.icon, e.header[0].value, e.unit, e.series[0].color], ["line", "Woonkamer", "temperature", 21.4, "°C", "#f5a524"]);
+});
+
+test("nice axis steps", () => {
+  eq(HWDC.niceAxis(0, 5873).ticks, [0, 2000, 4000, 6000]);
+  eq(HWDC.niceAxis(0, 40).ticks, [0, 10, 20, 30, 40]);
+  eq(HWDC.niceAxis(0, 0.37).step, 0.1);
+  eq(HWDC.niceAxis(19.4, 23.1).ticks, [19, 20, 21, 22, 23, 24]);
+});
+
+test("chart tile: header, axis, area and pointer data", () => {
+  const data = chartFixture("day");
+  const src = HWDC.resolveSources(chartColors, PREFS, INFO);
+  const h = hassNl({});
+  const c = { ...chartColors, color_text: "#ffffff" };
+  const tile = HWDC.renderChartTile(HWDC.chartData({ key: "grid" }, data, src, c, h), data.range, HWDC.formatter(h), c, "nl", TZ, "t1");
+  ok(tile.svg.includes(">Hoofdaansluiting</text>"), "title");
+  ok(tile.svg.includes('fill="#a259ff">0,2</text>') || tile.svg.includes('fill="#a259ff">0,1</text>'), "import total");
+  ok(tile.svg.includes("linearGradient") && tile.svg.includes('fill="url(#gt1-1)"'), "area with gradient");
+  ok(tile.svg.includes(">02:00</text>") && tile.svg.includes(">22:00</text>"), "x axis like the app");
+  ok(tile.svg.includes("€ 0,03"), "cost in the corner");
+  ok(tile.svg.includes('class="hover"'), "pointer layer");
+  eq(tile.meta.labels.length, 288);
+  ok(tile.meta.labels[0].endsWith("↓1200 W"), tile.meta.labels[0]);
+  ok(tile.meta.labels[1].includes("↑240") && tile.meta.labels[1].includes("↓600"), tile.meta.labels[1]);
+  eq(tile.meta.labels[5], null, "no pointer label without data");
+});
+
+test("charts view renders every chart and the period", () => {
+  const data = chartFixture("day");
+  const src = HWDC.resolveSources(chartColors, PREFS, INFO);
+  const h = { ...hassNl({}), themes: { darkMode: false } };
+  const out = HWDC.renderCharts({ charts: HWDC.chartList(chartColors, src), data, sources: src }, chartColors, HWDC.formatter(h), "nl", h);
+  eq(out.label, "Vandaag");
+  eq(out.tiles.length, 8);
+  const light = HWDC.renderCharts({ charts: [{ key: "solar" }], data, sources: src }, HWDC.normalizeConfig({ color_background: "#f4f5f7" }), HWDC.formatter(h), "nl", h);
+  ok(light.tiles[0].svg.includes("#4d8f1a"), "darker green on a light background");
+});
+
+test("editor: view, switch and charts block", () => {
+  const schema = HWDC.editorSchema({}, "nl", null);
+  const top = schema[0].schema.map((x) => x.name);
+  eq(top, ["view", "show_view_switch"]);
+  const block = schema.find((x) => x.name === "charts_group");
+  eq(block.schema.map((x) => x.name), ["charts", "chart_entities", "period"]);
+  eq(block.schema[0].selector.select.options.map((o) => o.label).slice(0, 3), ["Water", "Gasverbruik", "Hoofdaansluiting"]);
+  const data = HWDC.editorData({});
+  eq([data.view, data.show_view_switch, data.period, data.charts], ["display", true, "day", []]);
+  const clean = HWDC.cleanEditorConfig({ ...data, view: "charts", charts: [] }, {});
+  eq([clean.view, "charts" in clean, "period" in clean, "show_view_switch" in clean], ["charts", false, false, false]);
+});
+
 // ------------------------------------------------------------------ result
 
 const finish = () => {

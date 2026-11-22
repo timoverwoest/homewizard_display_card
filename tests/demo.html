@@ -120,8 +120,8 @@
       "sensor.demo_gas_total": st(4321.0, "m³"),
       "sensor.demo_socket_power": st(-420, "W"),
       "sensor.demo_socket_energy": st(120.0, "kWh"),
-      "sensor.demo_room_temperature": st(21.4, "°C", { device_class: "temperature" }),
-      "sensor.demo_room_humidity": st(48, "%", { device_class: "humidity" }),
+      "sensor.demo_room_temperature": st(22.9, "°C", { device_class: "temperature", friendly_name: "Woonkamer temperatuur" }),
+      "sensor.demo_room_humidity": st(35, "%", { device_class: "humidity", friendly_name: "Woonkamer luchtvochtigheid" }),
     };
 
     // Scenarios with own entities (battery sensor counts charging as positive).
@@ -148,7 +148,68 @@
       "sensor.demo_solar_today": st(solar, "kWh"),
     });
 
+    // Synthetic statistics over time for the charts: a consumption wave, a November solar curve,
+    // water spikes, a battery and a room sensor. Deterministic, so screenshots repeat.
+    const tz = "Europe/Amsterdam";
+    const localHour = (t) => {
+      const p = new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", hour: "numeric", minute: "numeric" }).formatToParts(new Date(t));
+      return Number(p.find((x) => x.type === "hour").value) + Number(p.find((x) => x.type === "minute").value) / 60;
+    };
+    const wave = (t) => { const h = localHour(t); const d = Math.floor(t / 86400000);
+      return 650 + 450 * Math.max(0, Math.sin((h * 60) / 75)) + (h > 7 && h < 13 ? 1500 + 700 * Math.sin(h * 3.1 + d) : 0) + (h > 17 && h < 21 ? 900 : 0); };
+    const sun = (t) => { const h = localHour(t); return h > 8.3 && h < 16.2 ? 950 * Math.sin(((h - 8.3) / 7.9) * Math.PI) ** 1.4 : 0; };
+    const spikes = (t) => { const k = Math.floor(t / 300000); return [91, 103, 118, 140, 166].includes(k % 288) ? 12 + (k % 31) : 0; };
+    const kwh = (w, ms) => (w * ms) / 3.6e9;
+    const nextStart = (t, period) => {
+      if (period === "5minute") return t + 300000;
+      if (period === "hour") return t + 3600000;
+      if (period === "day") return t + 86400000;
+      const d = new Date(t + 15 * 86400000); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1) - 3600000;
+    };
+    const valueFor = (id, t, ms) => {
+      const cons = wave(t + ms / 2), sol = sun(t + ms / 2);
+      const imp = Math.max(0, cons - sol), exp = Math.max(0, sol - cons);
+      switch (id) {
+        case "sensor.demo_import_t1": case "sensor.demo_import_t2": return kwh(imp / 2, ms);
+        case "sensor.demo_export_t1": case "sensor.demo_export_t2": return kwh(exp / 2, ms);
+        case "sensor.demo_import_t1_cost": case "sensor.demo_import_t2_cost": return kwh(imp / 2, ms) * 0.29;
+        case "sensor.demo_export_t1_compensation": case "sensor.demo_export_t2_compensation": return kwh(exp / 2, ms) * 0.08;
+        case "sensor.demo_solar_total": return kwh(sol, ms);
+        case "sensor.demo_water_total": return ms <= 300000 ? spikes(t) : (ms / 86400000) * 190;
+        case "sensor.demo_water_total_cost": return (ms / 86400000) * 0.21;
+        case "sensor.demo_gas_total": return (ms / 86400000) * 2100;
+        case "sensor.demo_gas_total_cost": return (ms / 86400000) * 2.7;
+        default: return null;
+      }
+    };
+    const meanFor = (id, t) => {
+      const h = localHour(t);
+      if (id === "sensor.demo_bat_soc") return Math.max(0, Math.min(100, 45 + 40 * Math.sin(((h - 9) / 24) * 2 * Math.PI)));
+      if (id === "sensor.demo_bat2_soc") return Math.max(0, Math.min(100, 35 + 30 * Math.sin(((h - 10) / 24) * 2 * Math.PI)));
+      if (id === "sensor.demo_room_temperature") return 20 + (h > 12 ? 2.6 : 0.4 * Math.sin(h));
+      if (id === "sensor.demo_room_humidity") return 48 - h * 0.5;
+      return null;
+    };
+    const series = (msg) => {
+      const out = {};
+      const end = Math.min(Date.parse(msg.end_time), Date.now());
+      for (const id of msg.statistic_ids) {
+        const rows = [];
+        for (let t = Date.parse(msg.start_time); t < end; ) {
+          const next = nextStart(t, msg.period);
+          const row = { start: t, end: next };
+          if (msg.types.includes("change")) { const v = valueFor(id, t, next - t); if (v === null) break; row.change = v; }
+          if (msg.types.includes("mean")) { const v = meanFor(id, t); if (v === null) break; row.mean = v; }
+          rows.push(row);
+          t = next;
+        }
+        if (rows.length) out[id] = rows;
+      }
+      return out;
+    };
+
     const callWS = async (msg) => {
+      if (msg.type === "recorder/statistics_during_period" && (msg.types.includes("change") || msg.types.includes("mean"))) return series(msg);
       if (msg.type === "energy/get_prefs") return PREFS;
       if (msg.type === "energy/info") return INFO;
       if (msg.type === "recorder/statistic_during_period") {
@@ -164,6 +225,7 @@
     };
 
     const cards = [
+      { title: "Charts view (like the HomeWizard app) with switch button", config: { view: "charts", water_flow: "sensor.demo_water_flow", chart_entities: ["sensor.demo_room_temperature", "sensor.demo_room_humidity"] }, states: autoStates },
       { title: "Default Usage Overview from the Energy settings (live)", config: { water_flow: "sensor.demo_water_flow" }, states: autoStates, auto: true },
       { title: "Gas, water and electricity, with costs", config: {
         circle_1: { source: "grid", mode: "now" },

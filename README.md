@@ -4,9 +4,10 @@
 
 <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/logo.png" alt="Logo: a small screen with one large ring, two small rings and three bars" width="96" align="right">
 
-A Home Assistant dashboard card that recreates the **Usage Overview** screen of the HomeWizard
-Energy Display: three circles and three rows that show electricity, solar, home battery, water
-and gas, now, today or in costs.
+A Home Assistant dashboard card that recreates the **Usage Overview** screen of the
+[HomeWizard Energy Display](https://www.homewizard.com/energy-display/): three circles and three
+rows that show electricity, solar, home battery, water and gas, now, today or in costs. With one
+tap on the card you switch to **charts** like those of the HomeWizard Energy app.
 
 <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot.png" alt="Default layout while taking power from the grid: purple ring with 1240 W, battery at 58 % delivering, 12.6 kWh solar today, 214 litres of water today" width="49%"> <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-export.png" alt="Default layout while returning power to the grid: green ring with -2150 W, battery at 88 % charging, 14.2 kWh solar today, water running at 7.5 L/min" width="49%">
 
@@ -24,6 +25,10 @@ and gas, now, today or in costs.
   counterclockwise, bars from right to left.
 * **Visual editor** in English and Dutch, set up like the HomeWizard app. Numbers follow the number
   format of your profile. Background colour of your choice, by day and by night.
+* **Charts like the HomeWizard app.** The button in the corner of the card switches to charts of
+  water, gas, the main connection, solar, electricity use, self-sufficiency, standby use, the
+  home battery and sensors of your own, per day, week, month or year. Each chart fills the same
+  frame as the display; scroll from chart to chart.
 * **One small file, no dependencies.** Fits in a sections view and scales to any width.
 
 The data comes from Home Assistant, for example from the official HomeWizard integration. You
@@ -116,6 +121,34 @@ Each position takes `source`, `mode` and the goals that belong to that mode.
   returned today.
 * A goal is the value at which the ring or bar is full. `color` gives one circle or row a colour
   of its own.
+
+### Charts
+
+<img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-charts.png" alt="Charts view: period bar with Today and Day, Week, Month, Year, and two of the charts: the main connection with 16.5 kWh taken and 0.1 kWh returned today, and self-sufficiency with the own solar energy in green" width="60%">
+
+Tap the button in the top-right corner of the card to switch between the display and the charts,
+like the chart toggles of the Energy dashboard. The card keeps the size of the display: each
+chart fills the frame and you scroll (mouse wheel or swipe) from one chart to the next; the dots
+show where you are. Above the charts you choose **Day**, **Week**, **Month** or **Year**, and
+step back in time with ‹ and ›. Point at or tap a chart to see the value at that moment.
+
+* **Day** shows the average power per 5 minutes as an area, like the app. Week, month and year
+  show kWh (or litres, m³) per hour, day or month as bars.
+* The charts use the same colours as the display: purple for taking from the grid and electricity
+  use, green for returning, solar and your own energy (self-sufficient), blue for water, orange
+  for gas.
+* **Standby use** is the power your house keeps using all the time: the lowest 5 % of the
+  averages of the period.
+* Everything comes from Home Assistant's statistics, with the same sources as the display. Home
+  Assistant keeps 5-minute statistics for about ten days; older days are shown per hour.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `view` | `display` | What the card shows first: `display` or `charts`. |
+| `show_view_switch` | `true` | The button on the card to switch between the two. |
+| `charts` | all with data | Which charts, in this order: `water`, `gas`, `grid`, `solar`, `consumption`, `self_sufficiency`, `standby`, `battery`. |
+| `chart_entities` | none | Sensors of your own as extra charts, for example a temperature or humidity. |
+| `period` | `day` | The period the charts start with: `day`, `week`, `month` or `year`. |
 
 ### Sensors
 
@@ -247,9 +280,11 @@ For a visual check, serve the repository root (for example `python3 -m http.serv
 
 ## Credits and disclaimer
 
-Inspired by the HomeWizard Energy Display. HomeWizard and HomeWizard Energy are trademarks of
-HomeWizard B.V. This is an independent community project; it is not affiliated with, endorsed by,
-or sponsored by HomeWizard. The logo is an original design and not the HomeWizard logo.
+Inspired by the [HomeWizard Energy Display](https://www.homewizard.com/energy-display/) and the
+charts of the [HomeWizard Energy app](https://hwenergy.app).
+[HomeWizard](https://www.homewizard.com/) and HomeWizard Energy are trademarks of HomeWizard B.V.
+This is an independent community project; it is not affiliated with, endorsed by, or sponsored by
+HomeWizard. The logo is an original design and not the HomeWizard logo.
 
 Icons in the card: [Material Design Icons](https://pictogrammers.com/library/mdi/) by
 Pictogrammers, Apache License 2.0.
