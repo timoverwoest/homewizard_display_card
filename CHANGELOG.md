@@ -26,6 +26,9 @@
   the layout works in right-to-left languages, an error is shown on the card instead of in the
   browser console, and the card cleans up when it is removed. The English texts now use
   American spelling ("color"); the option names were already `color_*`.
+* **Same formatting and lint rules as the Home Assistant frontend.** The code is formatted with
+  Prettier and checked with ESLint, with the settings and rules of the Home Assistant frontend;
+  the GitHub action checks both on every push.
 
 ## v0.4.0 - 2026-11-22
 

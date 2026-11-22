@@ -303,7 +303,16 @@ een nagemaakte Home Assistant met demowaarden.
 
 De code volgt de
 [coding guidelines van de Home Assistant-frontend](https://contributors.home-assistant.io/frontend/development/guidelines/)
-en de pagina's over [custom cards](https://contributors.home-assistant.io/frontend/custom-ui/card/).
+en de pagina's over [custom cards](https://contributors.home-assistant.io/frontend/custom-ui/card/),
+met dezelfde regels voor Prettier en ESLint (`.prettierrc.json`, `eslint.config.mjs`). De
+GitHub-action controleert ze bij elke push; met Node draai je de controle zelf:
+
+```bash
+npm install --no-save --no-package-lock prettier@3.10.1 eslint@10.15.0 @eslint/js@10.0.1
+npx prettier --check homewizard_display_card.js eslint.config.mjs "tests/*.js"
+npx eslint homewizard_display_card.js tests
+```
+
 Welke versie je browser geladen heeft, zie je met
 `customElements.get("homewizard-display-card").version` in de console van de browser.
 

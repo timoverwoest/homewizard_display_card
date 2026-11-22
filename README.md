@@ -294,7 +294,16 @@ For a visual check, serve the repository root (for example `python3 -m http.serv
 
 The code follows the
 [coding guidelines of the Home Assistant frontend](https://contributors.home-assistant.io/frontend/development/guidelines/)
-and the pages on [custom cards](https://contributors.home-assistant.io/frontend/custom-ui/card/).
+and the pages on [custom cards](https://contributors.home-assistant.io/frontend/custom-ui/card/),
+with the same Prettier and ESLint rules (`.prettierrc.json`, `eslint.config.mjs`). The GitHub
+action checks them on every push; with Node you can run the check yourself:
+
+```bash
+npm install --no-save --no-package-lock prettier@3.10.1 eslint@10.15.0 @eslint/js@10.0.1
+npx prettier --check homewizard_display_card.js eslint.config.mjs "tests/*.js"
+npx eslint homewizard_display_card.js tests
+```
+
 To see which version your browser loaded, run
 `customElements.get("homewizard-display-card").version` in the browser console.
 

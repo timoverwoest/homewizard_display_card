@@ -18,3 +18,20 @@ jobs:
         run: |
           node --version
           node tests/run-node.js
+
+  style:
+    name: Style (Prettier and ESLint of the Home Assistant frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      # The versions the Home Assistant frontend uses; only for this check, the card itself
+      # has no dependencies.
+      - name: Install Prettier and ESLint
+        run: npm install --no-save --no-package-lock prettier@3.10.1 eslint@10.15.0 @eslint/js@10.0.1
+      - name: Prettier
+        run: npx prettier --check homewizard_display_card.js eslint.config.mjs "tests/*.js"
+      - name: ESLint
+        run: npx eslint homewizard_display_card.js tests
