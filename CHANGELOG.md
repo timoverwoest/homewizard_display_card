@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.5.0 - 2026-11-22
 
 * **Switch button reacts to the first click.** The button was redrawn on every update from Home
   Assistant, so a mouse click that took longer than one update got lost. It is now only redrawn
