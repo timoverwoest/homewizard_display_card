@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.4.0 - 2026-11-22
 
 * **Charts like the HomeWizard app.** A second view with charts of water, gas, the main
   connection, solar, electricity use, self-sufficiency, standby use, the home battery and sensors
