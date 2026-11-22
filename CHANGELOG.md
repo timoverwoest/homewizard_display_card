@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.2.0 - 2026-11-22
 
 * **Day and night background.** New option `color_background_dark`: the background while Home
   Assistant shows a dark theme. `color_background` is the background by day. Empty keeps one

@@ -63,7 +63,7 @@ Staat de kaart eenmaal in de catalogus, dan zoek je onder **Instellingen → Mar
    [nieuwste release](https://github.com/timoverwoest/homewizard_display_card/releases/latest)
    (het staat in de broncode) en zet het in `/config/www/`.
 2. Ga naar **Instellingen → Dashboards → ⋮ → Bronnen** en voeg
-   `/local/homewizard_display_card.js?v=0.1.1` toe als **JavaScript-module**.
+   `/local/homewizard_display_card.js?v=0.2.0` toe als **JavaScript-module**.
 3. Laad je browser opnieuw. Verhoog `?v=` bij elke nieuwe versie.
 
 ## Instellen
