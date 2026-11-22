@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.0 - 2026-11-22
 
 * **First version.** The Usage Overview screen of the HomeWizard Energy Display as a dashboard
   card: three circles and three rows.
