@@ -697,6 +697,33 @@ test("chart tile: header, axis, area and pointer data", () => {
   eq(tile.meta.labels[5], null, "no pointer label without data");
 });
 
+test("chart tile on a phone: drawn at its pixel size, text keeps its size", () => {
+  const h = hassNl({});
+  const c = { ...chartColors, color_text: "#ffffff" };
+  const sizes = (svg) => [...svg.matchAll(/font-size="(\d+)"/g)].map((m) => Number(m[1]));
+  const day = chartFixture("day");
+  const src = HWDC.resolveSources(chartColors, PREFS, INFO);
+  const phone = HWDC.renderChartTile(HWDC.chartData({ key: "grid" }, day, src, c, h), day.range, HWDC.formatter(h), c, "nl", TZ, "p", { width: 340, height: 204 });
+  ok(phone.svg.includes('viewBox="0 0 340 204"'), "1 unit = 1 px");
+  eq(phone.meta.width, 340);
+  ok(Math.min(...sizes(phone.svg)) >= HWDC.CHART_FONT.axis, `no text below ${HWDC.CHART_FONT.axis} px: ${Math.min(...sizes(phone.svg))}`);
+  ok(phone.meta.centers.every((x) => x > 0 && x < 340), "chart inside the tile");
+  ok(phone.svg.includes(">02:00</text>") && phone.svg.includes(">22:00</text>"), "day labels still fit");
+  // A short tile: fewer values on the y axis, never touching.
+  const low = HWDC.renderChartTile(HWDC.chartData({ key: "water" }, day, src, c, h), day.range, HWDC.formatter(h), c, "nl", TZ, "l", { width: 327, height: 160 });
+  const ys = [...low.svg.matchAll(/<text x="315" y="([\d.]+)" text-anchor="end"[^>]*font-size="12"/g)].map((m) => Number(m[1]));
+  ok(ys.length >= 2 && ys.length <= 4, `y labels on a short tile: ${ys.length}`);
+  ys.slice(1).forEach((y, i) => ok(Math.abs(y - ys[i]) >= 20, `y labels apart: ${ys[i]} ${y}`));
+  // A year has 12 month labels: on a phone every other one, so they never touch.
+  const year = chartFixture("year");
+  const yr = HWDC.renderChartTile(HWDC.chartData({ key: "grid" }, year, src, c, h), year.range, HWDC.formatter(h), c, "nl", TZ, "y", { width: 300, height: 180 });
+  const months = [...yr.svg.matchAll(/<text x="([\d.]+)" y="170"[^>]*>([a-z]+)<\/text>/g)].map((m) => [Number(m[1]), m[2]]);
+  ok(months.length >= 4 && months.length < 12, `thinned month labels: ${months.length}`);
+  months.slice(1).forEach(([x, s], i) => ok(x - months[i][0] >= (s.length + months[i][1].length) * 12 * 0.31 + 6, `${months[i][1]} and ${s} apart`));
+  const wide = HWDC.renderChartTile(HWDC.chartData({ key: "grid" }, year, src, c, h), year.range, HWDC.formatter(h), c, "nl", TZ, "w", { width: 900, height: 540 });
+  eq([...wide.svg.matchAll(/y="530"[^>]*>[a-z]+<\/text>/g)].length, 12, "all months on a wide card");
+});
+
 test("charts view renders every chart and the period", () => {
   const data = chartFixture("day");
   const src = HWDC.resolveSources(chartColors, PREFS, INFO);
@@ -719,6 +746,56 @@ test("editor: view, switch and charts block", () => {
   eq([data.view, data.show_view_switch, data.period, data.charts], ["display", true, "day", []]);
   const clean = HWDC.cleanEditorConfig({ ...data, view: "charts", charts: [] }, {});
   eq([clean.view, "charts" in clean, "period" in clean, "show_view_switch" in clean], ["charts", false, false, false]);
+});
+
+test("chart colours follow the display; a circle wins over a row", () => {
+  const c = HWDC.normalizeConfig({
+    circle_3: { source: "solar", mode: "today", color: "#FFA500" },
+    middle: { source: "solar", mode: "today", color: "#123456" },
+    top: { source: "water", mode: "today", color: "#00ffff" },
+  });
+  eq(HWDC.slotColors(c), { solar: "#FFA500", water: "#00ffff" });
+  const data = chartFixture("day");
+  const src = HWDC.resolveSources(c, PREFS, INFO);
+  const h = hassNl({});
+  eq(HWDC.chartData({ key: "solar" }, data, src, c, h).series[0].color, "#FFA500", "solar like circle 3");
+  const self = HWDC.chartData({ key: "self_sufficiency" }, data, src, c, h);
+  eq([self.series[1].color, self.header[0].color], ["#FFA500", "#FFA500"], "own energy follows solar");
+  const grid = HWDC.chartData({ key: "grid" }, data, src, c, h);
+  eq([grid.series[0].color, grid.series[1].color], ["#86d03c", "#a259ff"], "export stays the delivery colour");
+  eq(HWDC.chartData({ key: "water" }, data, src, c, h).series[0].color, "#00ffff");
+  const light = { ...c, ...HWDC.effectiveColors(HWDC.normalizeConfig({ color_background: "#f4f5f7" }), {}).accents };
+  eq(HWDC.chartData({ key: "solar" }, data, src, light, h).series[0].color, "#FFA500", "own colour kept on a light background");
+});
+
+test("own chart colours win; empty falls back to the display", () => {
+  const c = HWDC.normalizeConfig({
+    circle_3: { source: "solar", mode: "today", color: "#FFA500" },
+    chart_color_solar: "#ff0000",
+    chart_color_delivery: "#00ff00",
+    chart_color_gas: [1, 2, 3],
+  });
+  eq(c.chart_color_grid, null, "empty stays null");
+  eq(c.chart_color_gas, "rgb(1,2,3)");
+  const data = chartFixture("day");
+  const src = HWDC.resolveSources(c, PREFS, INFO);
+  const h = hassNl({});
+  eq(HWDC.chartData({ key: "solar" }, data, src, c, h).series[0].color, "#ff0000", "chart colour over circle colour");
+  const self = HWDC.chartData({ key: "self_sufficiency" }, data, src, c, h);
+  eq(self.series[1].color, "#ff0000", "own energy follows the chart solar colour");
+  const grid = HWDC.chartData({ key: "grid" }, data, src, c, h);
+  eq([grid.series[0].color, grid.series[1].color], ["#00ff00", "#a259ff"], "export own, import display");
+  const both = HWDC.normalizeConfig({ chart_color_solar: "#ff0000", chart_color_self_sufficiency: "#0000ff" });
+  eq(HWDC.chartData({ key: "self_sufficiency" }, data, src, both, h).series[1].color, "#0000ff");
+  let err = "";
+  try { HWDC.normalizeConfig({ chart_color_water: "red;<x>" }); } catch (e) { err = e.message; }
+  eq(err.startsWith("chart_color_water:"), true, "bad colour gives a readable error");
+  const schema = HWDC.editorSchema({}, "nl", hassNl({}));
+  const section = schema.find((s) => s.name === "chart_colors");
+  eq(section.schema[0].schema.map((s) => s.name), HWDC.CHART_COLOR_KEYS);
+  eq(HWDC.editorLabel({ name: "chart_colors" }, "nl"), "Grafiekkleuren (optioneel)");
+  const cleaned = HWDC.cleanEditorConfig({ ...HWDC.editorData({}), chart_color_grid: "", chart_color_water: "#123456" }, {});
+  eq([cleaned.chart_color_grid, cleaned.chart_color_water], [undefined, "#123456"], "empty left out, own kept");
 });
 
 // ------------------------------------------------------------------ result

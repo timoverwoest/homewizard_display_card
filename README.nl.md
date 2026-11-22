@@ -138,9 +138,15 @@ zien.
 
 * **Dag** toont het gemiddelde vermogen per 5 minuten als vlak, zoals de app. Week, maand en jaar
   tonen kWh (of liters, m³) per uur, dag of maand als staafjes.
-* De grafieken gebruiken dezelfde kleuren als het display: paars voor afname van het net en
+* De grafieken gebruiken de kleuren van het display: paars voor afname van het net en
   stroomverbruik, groen voor teruglevering, zon en je eigen energie (zelfvoorzienend), blauw voor
-  water, oranje voor gas.
+  water, oranje voor gas. Een kleur die je bij een cirkel of regel instelt, telt ook mee; tonen een
+  cirkel en een regel dezelfde bron in verschillende kleuren, dan wint de cirkel. Alleen in de
+  grafieken andere kleuren? Stel ze in onder **Grafiekkleuren (optioneel)** (`chart_color_*`
+  hieronder); een leeg veld houdt de kleur van het display.
+* De grafieken worden op de echte afmeting van de kaart getekend, zodat assen en waarden op een
+  telefoon even goed leesbaar zijn als op een breed scherm. Op een smalle kaart tonen de assen
+  minder labels.
 * **Standby-verbruik** is het vermogen dat je huis altijd blijft gebruiken: de laagste 5 % van de
   gemiddelden in de periode.
 * Alles komt uit de statistieken van Home Assistant, met dezelfde bronnen als het display. Home
@@ -153,6 +159,14 @@ zien.
 | `charts` | alle met gegevens | Welke grafieken, in deze volgorde: `water`, `gas`, `grid`, `solar`, `consumption`, `self_sufficiency`, `standby`, `battery`. |
 | `chart_entities` | geen | Eigen sensoren als extra grafiek, bijvoorbeeld een temperatuur of luchtvochtigheid. |
 | `period` | `day` | De periode waarmee de grafieken beginnen: `day`, `week`, `month` of `year`. |
+| `chart_color_grid` | display | Afname van het net. |
+| `chart_color_delivery` | display | Teruglevering aan het net. |
+| `chart_color_solar` | display | Zonnepanelen. |
+| `chart_color_consumption` | display | Stroomverbruik en standby-verbruik. |
+| `chart_color_self_sufficiency` | zon | Je eigen energie in Zelfvoorzienend; leeg = de kleur van de zonnepanelen. |
+| `chart_color_battery` | display | Thuisaccu. |
+| `chart_color_water` | display | Water. |
+| `chart_color_gas` | display | Gas. |
 
 ### Sensoren
 

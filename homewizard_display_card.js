@@ -68,6 +68,11 @@ const HWDC = (() => {
     color_text: null,
   };
   const COLOR_KEYS = Object.keys(COLOR_DEFAULTS);
+  // Optional own colours for the charts view. Empty = the colour of the display.
+  const CHART_COLOR_KEYS = [
+    "chart_color_grid", "chart_color_delivery", "chart_color_solar", "chart_color_consumption",
+    "chart_color_self_sufficiency", "chart_color_battery", "chart_color_water", "chart_color_gas",
+  ];
   // Darker accents for a light background, so rings, bars and units keep enough contrast.
   // Only used for colours the user did not set.
   const LIGHT_ACCENTS = {
@@ -188,6 +193,7 @@ const HWDC = (() => {
     if (!SIGNS.includes(c.battery_power_sign)) throw new Error(`battery_power_sign: expected ${SIGNS.join(" or ")}`);
     c.use_energy_settings = config.use_energy_settings !== false;
     for (const key of COLOR_KEYS) c[key] = empty(config[key]) ? COLOR_DEFAULTS[key] : toColor(key, config[key]);
+    for (const key of CHART_COLOR_KEYS) c[key] = empty(config[key]) ? null : toColor(key, config[key]);
     for (const key of SLOTS) c[key] = normalizeSlot(key, config[key]);
     // Charts view, like the charts of the HomeWizard app.
     c.view = empty(config.view) ? "display" : config.view;
@@ -631,8 +637,19 @@ const HWDC = (() => {
         color_water: "Water",
         color_gas: "Gas",
         color_text: "Text",
+        chart_colors: "Chart colours (optional)",
+        chart_color_grid: "Grid import",
+        chart_color_delivery: "Export",
+        chart_color_solar: "Solar panels",
+        chart_color_consumption: "Electricity use and standby",
+        chart_color_self_sufficiency: "Own energy (self-sufficient)",
+        chart_color_battery: "Home battery",
+        chart_color_water: "Water",
+        chart_color_gas: "Gas",
       },
       helpers: {
+        chart_colors: "Empty = the colour of the display: a circle first, then a row, then Colours",
+        chart_color_self_sufficiency: "Empty = the solar colour",
         color_background: "Pick a suggestion or type your own hex colour",
         color_background_dark: "While Home Assistant shows a dark theme; empty = same as day",
         color_text: "Empty = automatic: white on a dark background, black on a light one",
@@ -711,8 +728,19 @@ const HWDC = (() => {
         color_water: "Water",
         color_gas: "Gas",
         color_text: "Tekst",
+        chart_colors: "Grafiekkleuren (optioneel)",
+        chart_color_grid: "Afname net",
+        chart_color_delivery: "Teruglevering",
+        chart_color_solar: "Zonnepanelen",
+        chart_color_consumption: "Stroomverbruik en standby-verbruik",
+        chart_color_self_sufficiency: "Eigen energie (zelfvoorzienend)",
+        chart_color_battery: "Thuisaccu",
+        chart_color_water: "Water",
+        chart_color_gas: "Gas",
       },
       helpers: {
+        chart_colors: "Leeg = de kleur van de display: eerst een cirkel, dan een rij, dan Kleuren",
+        chart_color_self_sufficiency: "Leeg = de kleur van de zonnepanelen",
         color_background: "Kies een voorstel of typ een eigen hex-kleur",
         color_background_dark: "Zolang Home Assistant een donker thema toont; leeg = zelfde als overdag",
         color_text: "Leeg = automatisch: wit op een donkere achtergrond, zwart op een lichte",
@@ -1178,6 +1206,19 @@ const HWDC = (() => {
     return { change: [...change], mean: [...mean] };
   };
 
+  // Colours set on circles and rows, per source. Circles come first in SLOTS, so on a conflict
+  // the colour of a circle wins over that of a row.
+  const slotColors = (c) => {
+    const out = {};
+    for (const key of SLOTS) {
+      const slot = c[key];
+      if (!slot || !slot.color) continue;
+      const k = slot.source === "entity" ? `entity:${slot.entity}` : slot.source;
+      if (!(k in out)) out[k] = slot.color;
+    }
+    return out;
+  };
+
   // The data of one chart: series to draw, header values, cost and axis.
   // kind "area": average power per bucket (day view); "bars": amount per bucket; "line": a level.
   const chartData = (chart, data, src, c, hass) => {
@@ -1203,42 +1244,57 @@ const HWDC = (() => {
         : Math.max(0, v - (exp[i] || 0) + (sol[i] || 0) + (bout[i] || 0) - (bin[i] || 0))));
     };
     const base = { key: chart.key, icon: CHART_ICON[chart.key], cost: null };
+    // An own chart colour first. Else the colour of the display: a colour set on a circle or
+    // row for the source (circles win), else the card colour. Own energy (self-sufficient)
+    // follows solar, both as chart colour and as display colour.
+    const own = slotColors(c);
+    const pick = (k, display) => c[`chart_color_${k}`] || display;
+    const col = {
+      water: pick("water", own.water || c.color_water),
+      gas: pick("gas", own.gas || c.color_gas),
+      grid: pick("grid", own.grid || c.color_grid),
+      delivery: pick("delivery", c.color_delivery),
+      solar: pick("solar", own.solar || c.color_delivery),
+      consumption: pick("consumption", own.consumption || c.color_grid),
+      self: c.chart_color_self_sufficiency || c.chart_color_solar || own.self_sufficiency || own.solar || c.color_delivery,
+      battery: pick("battery", own.battery || c.color_battery),
+    };
     switch (chart.key) {
       case "water": {
         const w = ch(src.water);
-        return { ...base, kind: "bars", unit: "L", decimals: 0, series: [{ values: w, color: c.color_water, arrow: "↓" }],
-          header: [{ arrow: "↓", value: total(w), unit: "L", decimals: 0, color: c.color_water }], cost: cost(src.waterCost) };
+        return { ...base, kind: "bars", unit: "L", decimals: 0, series: [{ values: w, color: col.water, arrow: "↓" }],
+          header: [{ arrow: "↓", value: total(w), unit: "L", decimals: 0, color: col.water }], cost: cost(src.waterCost) };
       }
       case "gas": {
         const energyGas = src.gas.length > 0 && gasKind(hass, src.gas[0]) === "energy";
         const g = ch(src.gas).map((v) => (v === null ? null : energyGas ? v : v / 1000));
         const unit = energyGas ? "kWh" : "m³";
-        return { ...base, kind: "bars", unit, decimals: 2, series: [{ values: g, color: c.color_gas, arrow: "↓" }],
-          header: [{ arrow: "↓", value: total(g), unit, decimals: 2, color: c.color_gas }], cost: cost(src.gasCost) };
+        return { ...base, kind: "bars", unit, decimals: 2, series: [{ values: g, color: col.gas, arrow: "↓" }],
+          header: [{ arrow: "↓", value: total(g), unit, decimals: 2, color: col.gas }], cost: cost(src.gasCost) };
       }
       case "grid": {
         const a = energy(imp);
         const b = energy(exp);
         return { ...base, kind: dayView ? "area" : "bars", unit: a.unit, decimals: dayView ? 0 : 2,
-          series: [{ values: b.values, color: c.color_delivery, arrow: "↑" }, { values: a.values, color: c.color_grid, arrow: "↓" }],
+          series: [{ values: b.values, color: col.delivery, arrow: "↑" }, { values: a.values, color: col.grid, arrow: "↓" }],
           header: [
-            { arrow: "↓", value: total(imp), unit: "kWh", decimals: 1, color: c.color_grid },
-            { arrow: "↑", value: total(exp), unit: "kWh", decimals: 1, color: c.color_delivery },
+            { arrow: "↓", value: total(imp), unit: "kWh", decimals: 1, color: col.grid },
+            { arrow: "↑", value: total(exp), unit: "kWh", decimals: 1, color: col.delivery },
           ],
           cost: cost(src.gridCost, src.gridCompensation) };
       }
       case "solar": {
         const s = energy(sol);
         return { ...base, kind: dayView ? "area" : "bars", unit: s.unit, decimals: dayView ? 0 : 2,
-          series: [{ values: s.values, color: c.color_delivery, arrow: "↑" }],
-          header: [{ arrow: "↑", value: total(sol), unit: "kWh", decimals: 1, color: c.color_delivery }] };
+          series: [{ values: s.values, color: col.solar, arrow: "↑" }],
+          header: [{ arrow: "↑", value: total(sol), unit: "kWh", decimals: 1, color: col.solar }] };
       }
       case "consumption": {
         const u = consumption();
         const e = energy(u);
         return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
-          series: [{ values: e.values, color: c.color_grid, arrow: "↓" }],
-          header: [{ arrow: "↓", value: total(u), unit: "kWh", decimals: 1, color: c.color_grid }] };
+          series: [{ values: e.values, color: col.consumption, arrow: "↓" }],
+          header: [{ arrow: "↓", value: total(u), unit: "kWh", decimals: 1, color: col.consumption }] };
       }
       case "self_sufficiency": {
         const u = consumption();
@@ -1247,11 +1303,11 @@ const HWDC = (() => {
         const o = energy(own);
         return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
           // Own energy (solar, battery) in the delivery colour of the card, like on the display.
-          series: [{ values: e.values, color: c.color_grid, arrow: "↓" }, { values: o.values, color: c.color_delivery, arrow: "⇅" }],
+          series: [{ values: e.values, color: col.consumption, arrow: "↓" }, { values: o.values, color: col.self, arrow: "⇅" }],
           header: [
-            { arrow: "⇅", value: total(own), unit: "", decimals: 1, color: c.color_delivery },
-            { arrow: "↓", value: total(imp), unit: "", decimals: 1, color: c.color_grid },
-            { arrow: "↑", value: total(exp), unit: "kWh", decimals: 1, color: c.color_delivery },
+            { arrow: "⇅", value: total(own), unit: "", decimals: 1, color: col.self },
+            { arrow: "↓", value: total(imp), unit: "", decimals: 1, color: col.grid },
+            { arrow: "↑", value: total(exp), unit: "kWh", decimals: 1, color: col.delivery },
           ] };
       }
       case "standby": {
@@ -1264,8 +1320,8 @@ const HWDC = (() => {
           : dayView ? standbyW : (standbyW * bucketHours(range, i)) / 1000));
         const e = energy(u);
         return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
-          series: [{ values: e.values, color: c.color_grid, faint: true }, { values: band, color: c.color_grid, arrow: "↓" }],
-          header: [{ arrow: "↓", value: standbyW === null ? null : (standbyW * hours) / 1000, unit: "kWh", decimals: 1, color: c.color_grid }],
+          series: [{ values: e.values, color: col.consumption, faint: true }, { values: band, color: col.consumption, arrow: "↓" }],
+          header: [{ arrow: "↓", value: standbyW === null ? null : (standbyW * hours) / 1000, unit: "kWh", decimals: 1, color: col.consumption }],
           note: standbyW === null ? null : standbyW };
       }
       case "battery": {
@@ -1276,10 +1332,10 @@ const HWDC = (() => {
         });
         const now = src.batterySoc.map((id) => stateValue(hass, id, "raw")).filter((v) => v !== null);
         return { ...base, kind: "line", unit: "%", decimals: 0, min: 0, max: 100,
-          series: [{ values: soc, color: c.color_battery }],
+          series: [{ values: soc, color: col.battery }],
           header: [
-            { arrow: "↓", value: total(ch(src.batteryIn)), unit: "", decimals: 1, color: c.color_grid },
-            { arrow: "↑", value: total(ch(src.batteryOut)), unit: "kWh", decimals: 1, color: c.color_delivery },
+            { arrow: "↓", value: total(ch(src.batteryIn)), unit: "", decimals: 1, color: col.grid },
+            { arrow: "↑", value: total(ch(src.batteryOut)), unit: "kWh", decimals: 1, color: col.delivery },
           ],
           corner: now.length ? `${Math.round(now.reduce((a, b) => a + b, 0) / now.length)} %` : null };
       }
@@ -1288,7 +1344,7 @@ const HWDC = (() => {
         const id = chart.entity;
         const st = entityOf(hass, id);
         const dc = st && st.attributes ? st.attributes.device_class : undefined;
-        const color = dc === "temperature" ? c.color_gas : dc === "humidity" ? c.color_water : c.color_battery;
+        const color = own[`entity:${id}`] || (dc === "temperature" ? c.color_gas : dc === "humidity" ? c.color_water : c.color_battery);
         const unit = unitOf(hass, id) || "";
         const v = stateValue(hass, id, "raw");
         return { ...base, key: "entity", icon: dc === "temperature" ? "temperature" : dc === "humidity" ? "humidity" : "entity",
@@ -1300,11 +1356,12 @@ const HWDC = (() => {
   };
 
   // Round axis: about five steps of 1, 2, 2.5 or 5 times a power of ten.
-  const niceAxis = (lo, hi) => {
+  // Round axis with about `count` steps (fewer on a short chart, so the labels never touch).
+  const niceAxis = (lo, hi, count) => {
     let min = Math.min(lo, hi);
     let max = Math.max(lo, hi);
     if (max === min) max = min + (min === 0 ? 1 : Math.abs(min) * 0.1);
-    const raw = (max - min) / 5;
+    const raw = (max - min) / (count || 5);
     const mag = 10 ** Math.floor(Math.log10(raw));
     const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((s) => s >= raw);
     min = Math.floor(min / step) * step;
@@ -1366,57 +1423,87 @@ const HWDC = (() => {
     return range.buckets.map((t) => [t + 15 * 86400000, fmt(t + 15 * 86400000, { month: "short" }).replace(".", "")]);
   };
 
-  // A chart tile as SVG, 800 wide and as tall as the frame it fills (default 260), in the style
-  // of the HomeWizard app.
-  const renderChartTile = (chart, range, fmt, c, lang, tz, uid, height) => {
-    const H = Math.max(200, Math.round(height || 260));
-    const CH = { x0: 16, x1: 744, top: 92, bottom: H - 36, width: 800, height: H };
+  // Text sizes in the charts, in pixels: the tile is drawn at its real size (1 unit = 1 px), so
+  // axes and values stay readable on a phone instead of shrinking with a fixed 800 wide drawing.
+  const CHART_FONT = { axis: 12, title: 14, unit: 13, corner: 13, hover: 13 };
+
+  // A chart tile as SVG in the style of the HomeWizard app, filling a frame of `size`
+  // {width, height} pixels. A number is the height at the old fixed width of 800.
+  const renderChartTile = (chart, range, fmt, c, lang, tz, uid, size) => {
+    const box = size && typeof size === "object" ? size : { width: 800, height: size || 260 };
+    const W = Math.max(240, Math.round(box.width || 800));
+    const H = Math.max(160, Math.round(box.height || 260));
+    const F = CHART_FONT;
+    const pad = W < 480 ? 12 : 16;
     const T = CHART_TEXT[pickLang(lang)];
     const parts = [];
     const sub = c.color_text;
+
+    // Header: coloured totals with arrows, as big as fits next to the icon; title, cost and icon.
+    const iconSize = W < 480 ? 22 : 26;
+    const iconX = W - pad - iconSize;
+    const heads = chart.header.map((h) => ({ ...h, num: h.value === null ? "–" : fmt(h.value, h.decimals).text }));
+    const arrowW = (h, f) => (h.arrow ? (h.arrow === "⇅" ? 0.8 : 0.55) * f : 0); // the double arrow is wider
+    const unitW = (h) => (h.unit ? h.unit.length * F.unit * 0.6 + 10 : 10);
+    const headW = (f) => heads.reduce((w, h) => w + arrowW(h, f) + h.num.length * f * 0.56 + 4 + unitW(h), 0);
+    const room = iconX - pad - 8;
+    // A short tile (a phone in the 5:3 frame) gets a tighter header, so the chart keeps room.
+    const short = H < 240;
+    let f = Math.min(short ? 24 : 30, Math.max(22, Math.round(W / 26)));
+    if (headW(f) > room) f = Math.max(14, Math.floor((f * room) / headW(f)));
+    const hy = (short ? 10 : 14) + f;
+    let hx = pad + 2;
+    for (const h of heads) {
+      if (h.arrow) parts.push(text(hx.toFixed(1), hy, Math.round(f * 0.73), h.color, h.arrow));
+      hx += arrowW(h, f);
+      parts.push(text(hx.toFixed(1), hy, f, h.color, esc(h.num)));
+      hx += h.num.length * f * 0.56 + 4;
+      if (h.unit) parts.push(text(hx.toFixed(1), hy, F.unit, sub, esc(h.unit), undefined, 0.7));
+      hx += unitW(h);
+    }
+    const titleY = hy + (short ? 18 : 22);
+    parts.push(text(pad + 2, titleY, F.title, sub, esc(chart.title || T.title[chart.key])));
+    const corner = chart.corner || (chart.cost !== null && chart.cost !== undefined
+      ? `${fmt.currency || "€"} ${fmt(chart.cost, 2).text}` : null);
+    if (corner) {
+      // Top right next to the icon; on the title line when the totals need that room.
+      const up = hx + corner.length * F.corner * 0.6 < iconX - 10;
+      parts.push(text(up ? iconX - 10 : W - pad, up ? hy - Math.round(f * 0.33) : titleY, F.corner, sub, esc(corner), "end", 0.75));
+    }
+    parts.push(`<path transform="translate(${iconX} ${pad - 2}) scale(${(iconSize / 24).toFixed(3)})" fill="${sub}" d="${ICONS[chart.icon] || ICONS.entity}"/>`);
+
+    // Axis: the values on the right get the room their widest label needs.
+    const values = chart.series.flatMap((s) => s.values).filter((v) => v !== null);
+    const lo = chart.min !== undefined ? chart.min : chart.kind === "line" && values.length ? Math.min(...values) : 0;
+    const hi = chart.max !== undefined ? chart.max : values.length ? Math.max(...values) : 1;
+    const top = titleY + (short ? 16 : 22);
+    const bottom = H - 28;
+    // At least 10 px between two value labels.
+    const steps = Math.max(2, Math.min(5, Math.floor((bottom - top) / (F.axis + 10))));
+    const axis = niceAxis(lo, hi > lo ? hi : lo + 1, steps);
+    // Enough decimals for the step: 0.25 → 2, 0.002 → 3.
+    const dec = axis.step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(axis.step) + (String(axis.step).includes("25") ? 1 : 0) - 1e-9));
+    const ticks = axis.ticks.map((t) => [t, fmt(t, dec).text]);
+    const tickW = Math.max(...ticks.map(([, s]) => s.length)) * F.axis * 0.62;
+    const CH = { x0: pad, x1: Math.round(W - pad - tickW - 8), top, bottom };
     const span = range.end - range.start;
     const xAt = (t) => CH.x0 + ((t - range.start) / span) * (CH.x1 - CH.x0);
     const n = range.buckets.length;
     const centers = range.buckets.map((t, i) => xAt(t + ((range.buckets[i + 1] !== undefined ? range.buckets[i + 1] : range.end) - t) / 2));
-
-    // Header: coloured totals with arrows, title, cost and icon.
-    let hx = 18;
-    for (const h of chart.header) {
-      const num = h.value === null ? "–" : fmt(h.value, h.decimals).text;
-      if (h.arrow) {
-        parts.push(text(hx, 44, 22, h.color, h.arrow));
-        hx += h.arrow === "⇅" ? 24 : 16; // the double arrow is wider
-      }
-      parts.push(text(hx, 44, 30, h.color, esc(num)));
-      hx += num.length * 30 * 0.56 + 4;
-      if (h.unit) {
-        parts.push(text(hx, 44, 14, sub, esc(h.unit), undefined, 0.7));
-        hx += h.unit.length * 14 * 0.6 + 10;
-      } else {
-        hx += 10;
-      }
-    }
-    parts.push(text(18, 68, 14, sub, esc(chart.title || T.title[chart.key])));
-    const corner = chart.corner || (chart.cost !== null && chart.cost !== undefined
-      ? `${fmt.currency || "€"} ${fmt(chart.cost, 2).text}` : null);
-    if (corner) parts.push(text(744, 34, 14, sub, esc(corner), "end", 0.7));
-    parts.push(`<path transform="translate(756 14) scale(1.15)" fill="${sub}" d="${ICONS[chart.icon] || ICONS.entity}"/>`);
-
-    // Axis.
-    const values = chart.series.flatMap((s) => s.values).filter((v) => v !== null);
-    const lo = chart.min !== undefined ? chart.min : chart.kind === "line" && values.length ? Math.min(...values) : 0;
-    const hi = chart.max !== undefined ? chart.max : values.length ? Math.max(...values) : 1;
-    const axis = niceAxis(lo, hi > lo ? hi : lo + 1);
     const yAt = (v) => CH.bottom - ((v - axis.min) / (axis.max - axis.min)) * (CH.bottom - CH.top);
-    for (const t of axis.ticks) {
+    for (const [t, label] of ticks) {
       const y = yAt(t).toFixed(1);
       parts.push(`<line x1="${CH.x0}" y1="${y}" x2="${CH.x1}" y2="${y}" stroke="${sub}" stroke-opacity="0.08"/>`);
-      // Enough decimals for the step: 0.25 → 2, 0.002 → 3.
-      const dec = axis.step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(axis.step) + (String(axis.step).includes("25") ? 1 : 0) - 1e-9));
-      parts.push(text(790, Number(y) + 4, 11, sub, esc(fmt(t, dec).text), "end", 0.55));
+      parts.push(text(W - pad, (Number(y) + 4).toFixed(1), F.axis, sub, esc(label), "end", 0.7));
     }
+    // Labels under the x axis; one that would touch the previous one is left out (narrow cards).
+    let lastEnd = -Infinity;
     for (const [t, label] of xLabels(range, lang, tz)) {
-      parts.push(text(xAt(t).toFixed(1), H - 12, 11, sub, esc(label), "middle", 0.55));
+      const x = xAt(t);
+      const half = String(label).length * F.axis * 0.31;
+      if (x - half < lastEnd + 6) continue;
+      lastEnd = x + half;
+      parts.push(text(x.toFixed(1), H - 10, F.axis, sub, esc(label), "middle", 0.7));
     }
 
     // Series.
@@ -1453,9 +1540,10 @@ const HWDC = (() => {
         flush();
       }
     });
-    if (!values.length) parts.push(text(380, Math.round((CH.top + CH.bottom) / 2), 14, sub, esc(T.none), "middle", 0.5));
-    // Pointer line and label, moved by the card.
-    parts.push(`<g class="hover" visibility="hidden"><line x1="0" y1="${CH.top - 8}" x2="0" y2="${CH.bottom}" stroke="${sub}" stroke-opacity="0.6"/><text x="0" y="${CH.top - 14}" text-anchor="middle" ${FONT} font-size="13" fill="${sub}"></text></g>`);
+    if (!values.length) parts.push(text(Math.round((CH.x0 + CH.x1) / 2), Math.round((CH.top + CH.bottom) / 2), F.title, sub, esc(T.none), "middle", 0.5));
+    // Pointer line and label, moved by the card. The label has a halo in the background colour,
+    // so it stays readable over the title and the grid lines.
+    parts.push(`<g class="hover" visibility="hidden"><line x1="0" y1="${CH.top - 6}" x2="0" y2="${CH.bottom}" stroke="${sub}" stroke-opacity="0.6"/><text x="0" y="${CH.top - 10}" text-anchor="middle" ${FONT} font-size="${F.hover}" fill="${sub}" stroke="${c.color_background}" stroke-width="4" stroke-linejoin="round" paint-order="stroke"></text></g>`);
 
     // What the pointer shows per bucket.
     const lc = pickLang(lang) === "nl" ? "nl-NL" : "en-GB";
@@ -1476,17 +1564,17 @@ const HWDC = (() => {
       const shown = vals.some(([, v]) => v !== 0) ? vals.filter(([, v]) => v !== 0) : vals.slice(0, 1);
       return `${when(t)}  ${shown.map(([a, v]) => `${a}${fmt(v, chart.decimals).text}`).join("  ")} ${chart.unit}`.trim();
     });
-    const svg = `<svg viewBox="0 0 ${CH.width} ${CH.height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(chart.title || T.title[chart.key])}"><defs>${defs.join("")}</defs>${parts.join("")}</svg>`;
-    return { svg, meta: { centers: centers.map((x) => Number(x.toFixed(1))), labels } };
+    const svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(chart.title || T.title[chart.key])}"><defs>${defs.join("")}</defs>${parts.join("")}</svg>`;
+    return { svg, meta: { width: W, centers: centers.map((x) => Number(x.toFixed(1))), labels } };
   };
 
-  // The whole charts view: period label and one tile per chart.
-  const renderCharts = (state, config, fmt, lang, hass, height) => {
+  // The whole charts view: period label and one tile per chart. `size`: see renderChartTile.
+  const renderCharts = (state, config, fmt, lang, hass, size) => {
     const tz = hass && hass.config ? hass.config.time_zone : undefined;
     const eff = effectiveColors(config, hass);
     const c = { ...config, ...eff.accents, color_background: eff.background, color_text: eff.text };
     const label = periodLabel(state.data.range, lang, tz);
-    const tiles = state.charts.map((chart, i) => renderChartTile(chartData(chart, state.data, state.sources, c, hass), state.data.range, fmt, c, lang, tz, `${state.uid || "c"}${i}`, height));
+    const tiles = state.charts.map((chart, i) => renderChartTile(chartData(chart, state.data, state.sources, c, hass), state.data.range, fmt, c, lang, tz, `${state.uid || "c"}${i}`, size));
     return { label, tiles, colors: eff };
   };
 
@@ -1650,6 +1738,17 @@ const HWDC = (() => {
           schema: COLOR_KEYS.filter((k) => !k.startsWith("color_background")).map((name) => ({ name, selector: { text: {} } })),
         }],
       },
+      {
+        name: "chart_colors",
+        type: "expandable",
+        flatten: true,
+        icon: "mdi:chart-bar",
+        schema: [{
+          type: "grid",
+          name: "",
+          schema: CHART_COLOR_KEYS.map((name) => ({ name, selector: { text: {} } })),
+        }],
+      },
     ];
   };
 
@@ -1684,6 +1783,7 @@ const HWDC = (() => {
     for (const key of COLOR_KEYS) {
       if (empty(out[key]) || String(out[key]).toLowerCase() === COLOR_DEFAULTS[key]) delete out[key];
     }
+    for (const key of CHART_COLOR_KEYS) if (empty(out[key])) delete out[key];
     if (out.battery_power_sign === SIGNS[0]) delete out.battery_power_sign;
     if (out.use_energy_settings !== false) delete out.use_energy_settings;
     if (out.show_view_switch !== false) delete out.show_view_switch;
@@ -1701,10 +1801,10 @@ const HWDC = (() => {
   const editorHelper = (schema, lang) => schema.helper_text || TEXT[pickLang(lang)].helpers[schema.name];
 
   return {
-    VERSION, TAG, EDITOR_TAG, SOURCES, SLOTS, SLOT_DEFAULTS, COLOR_DEFAULTS, ENTITY_KEYS, TEXT,
-    luminance, effectiveColors, LIGHT_ACCENTS, BACKGROUND_SUGGESTIONS,
+    VERSION, TAG, EDITOR_TAG, SOURCES, SLOTS, SLOT_DEFAULTS, COLOR_DEFAULTS, CHART_COLOR_KEYS, ENTITY_KEYS, TEXT,
+    luminance, effectiveColors, LIGHT_ACCENTS, BACKGROUND_SUGGESTIONS, slotColors,
     VIEWS, CHARTS, PERIODS, tzParts, zonedMidnight, periodRange, bucketHours, fetchSeries, seriesOf,
-    chartList, chartStatIds, chartData, niceAxis, periodLabel, xLabels, renderChartTile, renderCharts,
+    chartList, chartStatIds, chartData, niceAxis, periodLabel, xLabels, CHART_FONT, renderChartTile, renderCharts,
     CHART_TEXT, ICONS,
     normalizeConfig, normalizeSlot, sourcesFromPrefs, resolveSources, needsCosts, meterIds, slotMeterIds, convert,
     stateValue, gasKind, fetchToday, todayValue, computeModel, msToNextRefresh, dayKey, numberLocale,
@@ -1904,7 +2004,8 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         // Redraw when the frame changes size, so each chart keeps filling it.
         if (typeof ResizeObserver !== "undefined") {
           this._resize = new ResizeObserver(() => {
-            if (this._tileHeight() !== this._lastTileHeight) {
+            const s = this._tileSize();
+            if (`${s.width}x${s.height}` !== this._lastTileSize) {
               this._chartsKey = "";
               this._render();
             }
@@ -1937,8 +2038,12 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         card.style.setProperty("--hwdc-background", eff.background);
         card.style.setProperty("--hwdc-text", eff.text);
         const button = this.shadowRoot.querySelector(".switch");
-        if (button) {
-          const toCharts = this._view !== "charts";
+        // Only touch the button when its look changes: replacing its content on every state
+        // update could swallow a click (press and release on different elements).
+        const toCharts = this._view !== "charts";
+        const buttonKey = `${toCharts}${nl}`;
+        if (button && button.dataset.key !== buttonKey) {
+          button.dataset.key = buttonKey;
           const title = toCharts ? (nl ? "Grafieken tonen" : "Show charts") : (nl ? "Display tonen" : "Show display");
           button.title = title;
           button.setAttribute("aria-label", title);
@@ -1964,10 +2069,11 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       const root = this.shadowRoot;
       const T = HWDC.CHART_TEXT[HWDC.pickLang(lang)];
       root.querySelectorAll(".tabs button").forEach((b) => {
-        b.textContent = T.period[b.dataset.p];
-        b.classList.toggle("on", b.dataset.p === this._period);
+        if (b.textContent !== T.period[b.dataset.p]) b.textContent = T.period[b.dataset.p];
+        if (b.classList.contains("on") !== (b.dataset.p === this._period)) b.classList.toggle("on");
       });
-      root.querySelector(".next").disabled = this._offset === 0;
+      const next = root.querySelector(".next");
+      if (next.disabled !== (this._offset === 0)) next.disabled = this._offset === 0;
       const tiles = root.querySelector(".tiles");
       if (!this._chart) {
         if (this._chartsKey !== "wait") {
@@ -1977,12 +2083,13 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         }
         return;
       }
-      const height = this._tileHeight();
-      const out = HWDC.renderCharts(this._chart, this._config, HWDC.formatter(hass), lang, hass, height);
-      const key = height + out.label + out.tiles.map((t) => t.svg).join("");
+      const size = this._tileSize();
+      const sizeKey = `${size.width}x${size.height}`;
+      const out = HWDC.renderCharts(this._chart, this._config, HWDC.formatter(hass), lang, hass, size);
+      const key = sizeKey + out.label + out.tiles.map((t) => t.svg).join("");
       if (key === this._chartsKey) return;
       this._chartsKey = key;
-      this._lastTileHeight = height;
+      this._lastTileSize = sizeKey;
       root.querySelector(".label").textContent = out.label;
       const keep = tiles.scrollTop;
       tiles.innerHTML = out.tiles.map((t, i) => `<div class="tile" data-i="${i}">${t.svg}</div>`).join("") ||
@@ -1997,11 +2104,12 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       this._markDot();
     }
 
-    // Height of one chart in SVG units, so it fills the frame at 800 wide.
-    _tileHeight() {
+    // Size of one chart in pixels: each chart is drawn at exactly this size, so it fills the
+    // frame and its text keeps its size on every screen.
+    _tileSize() {
       const tiles = this.shadowRoot && this.shadowRoot.querySelector(".tiles");
-      if (!tiles || !tiles.clientWidth || !tiles.clientHeight) return 400;
-      return Math.max(200, Math.min(1200, Math.round((800 * tiles.clientHeight) / tiles.clientWidth)));
+      if (!tiles || !tiles.clientWidth || !tiles.clientHeight) return { width: 800, height: 480 };
+      return { width: Math.round(tiles.clientWidth), height: Math.round(tiles.clientHeight) };
     }
 
     // Index of the chart in view.
@@ -2029,7 +2137,7 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       const svg = tile.querySelector("svg");
       if (!meta || !svg) return;
       const r = svg.getBoundingClientRect();
-      const x = ((e.clientX - r.left) / r.width) * 800;
+      const x = ((e.clientX - r.left) / r.width) * meta.width;
       let best = -1;
       let dist = Infinity;
       meta.centers.forEach((cx, i) => {
@@ -2047,7 +2155,9 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       line.setAttribute("x1", cx);
       line.setAttribute("x2", cx);
       const label = g.querySelector("text");
-      label.setAttribute("x", Math.max(130, Math.min(670, cx)));
+      // Keep the whole label inside the chart.
+      const half = Math.min(meta.width / 2, meta.labels[best].length * HWDC.CHART_FONT.hover * 0.29 + 4);
+      label.setAttribute("x", Math.max(half, Math.min(meta.width - half, cx)).toFixed(1));
       label.textContent = meta.labels[best];
       g.setAttribute("visibility", "visible");
     }

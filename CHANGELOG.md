@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+* **Switch button reacts to the first click.** The button was redrawn on every update from Home
+  Assistant, so a mouse click that took longer than one update got lost. It is now only redrawn
+  when its look changes. Touch screens were not affected.
+* **Charts follow the colours of the display.** A colour set on a circle or row (for example
+  orange solar panels) is now also used in the charts, own energy in Self-sufficient included.
+  When a circle and a row show the same source in different colours, the circle wins.
+* **Own chart colours (optional).** New section *Chart colours* in the editor, options
+  `chart_color_grid`, `chart_color_delivery`, `chart_color_solar`, `chart_color_consumption`,
+  `chart_color_self_sufficiency`, `chart_color_battery`, `chart_color_water` and
+  `chart_color_gas`. Empty keeps the colour of the display.
+* **Readable charts on a phone.** The charts are drawn at the real size of the card, so axes and
+  values no longer shrink on a narrow screen; the header shrinks to fit, the axes show fewer
+  labels when there is little room, and the pointer label stays inside the chart.
+
 ## v0.4.0 - 2026-11-22
 
 * **Charts like the HomeWizard app.** A second view with charts of water, gas, the main

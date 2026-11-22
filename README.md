@@ -134,9 +134,14 @@ step back in time with ‹ and ›. Point at or tap a chart to see the value at 
 
 * **Day** shows the average power per 5 minutes as an area, like the app. Week, month and year
   show kWh (or litres, m³) per hour, day or month as bars.
-* The charts use the same colours as the display: purple for taking from the grid and electricity
-  use, green for returning, solar and your own energy (self-sufficient), blue for water, orange
-  for gas.
+* The charts use the colours of the display: purple for taking from the grid and electricity use,
+  green for returning, solar and your own energy (self-sufficient), blue for water, orange for
+  gas. A colour you set on a circle or row is used too; when a circle and a row show the same
+  source with different colours, the circle wins. Want other colours in the charts only? Set them
+  under **Chart colours (optional)** (`chart_color_*` below); an empty field keeps the colour of
+  the display.
+* The charts are drawn at the real size of the card, so axes and values keep the same readable
+  size on a phone as on a wide screen. On a narrow card the axes show fewer labels.
 * **Standby use** is the power your house keeps using all the time: the lowest 5 % of the
   averages of the period.
 * Everything comes from Home Assistant's statistics, with the same sources as the display. Home
@@ -149,6 +154,14 @@ step back in time with ‹ and ›. Point at or tap a chart to see the value at 
 | `charts` | all with data | Which charts, in this order: `water`, `gas`, `grid`, `solar`, `consumption`, `self_sufficiency`, `standby`, `battery`. |
 | `chart_entities` | none | Sensors of your own as extra charts, for example a temperature or humidity. |
 | `period` | `day` | The period the charts start with: `day`, `week`, `month` or `year`. |
+| `chart_color_grid` | display | Taking from the grid. |
+| `chart_color_delivery` | display | Returning to the grid. |
+| `chart_color_solar` | display | Solar panels. |
+| `chart_color_consumption` | display | Electricity use and standby use. |
+| `chart_color_self_sufficiency` | solar | Your own energy in Self-sufficient; empty = the solar colour. |
+| `chart_color_battery` | display | Home battery. |
+| `chart_color_water` | display | Water. |
+| `chart_color_gas` | display | Gas. |
 
 ### Sensors
 
