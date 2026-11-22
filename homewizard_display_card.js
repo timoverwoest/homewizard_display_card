@@ -184,10 +184,11 @@ const HWDC = (() => {
     const hex = s.match(/^#([0-9a-f]{3,8})$/);
     if (hex) {
       const h = hex[1];
-      if (h.length === 3 || h.length === 4)
+      if (h.length === 3 || h.length === 4) {
         rgb = [0, 1, 2].map((i) => parseInt(h[i] + h[i], 16));
-      else if (h.length === 6 || h.length === 8)
+      } else if (h.length === 6 || h.length === 8) {
         rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+      }
     }
     const fn = s.match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/);
     if (fn) rgb = [fn[1], fn[2], fn[3]].map(Number);
@@ -215,8 +216,9 @@ const HWDC = (() => {
     const accents = {};
     if (light) {
       for (const [key, value] of Object.entries(LIGHT_ACCENTS)) {
-        if (String(c[key]).toLowerCase() === COLOR_DEFAULTS[key])
+        if (String(c[key]).toLowerCase() === COLOR_DEFAULTS[key]) {
           accents[key] = value;
+        }
       }
     }
     return { background, text, dark, accents };
@@ -232,20 +234,22 @@ const HWDC = (() => {
           : {};
     const source = empty(r.source) ? def.source : r.source;
     const spec = SOURCES[source];
-    if (!spec)
+    if (!spec) {
       throw new Error(
         `${key}.source: expected one of ${Object.keys(SOURCES).join(", ")}`
       );
+    }
     let mode = empty(r.mode)
       ? source === def.source
         ? def.mode
         : spec.start
       : r.mode;
     if (!spec.modes.length) mode = null;
-    else if (!spec.modes.includes(mode))
+    else if (!spec.modes.includes(mode)) {
       throw new Error(
         `${key}.mode: ${source} can show ${spec.modes.join(", ")}`
       );
+    }
     const slot = { source, mode };
     for (const [m, g] of Object.entries(spec.goals)) {
       const k = GOAL_KEY[m];
@@ -253,8 +257,9 @@ const HWDC = (() => {
         slot[k] = g;
       } else {
         const n = Number(r[k]);
-        if (!Number.isFinite(n) || n <= 0)
+        if (!Number.isFinite(n) || n <= 0) {
           throw new Error(`${key}.${k}: expected a number above 0`);
+        }
         slot[k] = n;
       }
     }
@@ -271,8 +276,9 @@ const HWDC = (() => {
   // Fills in defaults and checks the values. Throws an Error with a readable message, which
   // Home Assistant shows on the card.
   const normalizeConfig = (config) => {
-    if (!config || typeof config !== "object")
+    if (!config || typeof config !== "object") {
       throw new Error("Invalid configuration");
+    }
     const c = {};
     for (const key of ENTITY_KEYS) {
       const v = config[key];
@@ -286,32 +292,38 @@ const HWDC = (() => {
     c.battery_power_sign = empty(config.battery_power_sign)
       ? SIGNS[0]
       : config.battery_power_sign;
-    if (!SIGNS.includes(c.battery_power_sign))
+    if (!SIGNS.includes(c.battery_power_sign)) {
       throw new Error(`battery_power_sign: expected ${SIGNS.join(" or ")}`);
+    }
     c.use_energy_settings = config.use_energy_settings !== false;
-    for (const key of COLOR_KEYS)
+    for (const key of COLOR_KEYS) {
       c[key] = empty(config[key])
         ? COLOR_DEFAULTS[key]
         : toColor(key, config[key]);
-    for (const key of CHART_COLOR_KEYS)
+    }
+    for (const key of CHART_COLOR_KEYS) {
       c[key] = empty(config[key]) ? null : toColor(key, config[key]);
+    }
     for (const key of SLOTS) c[key] = normalizeSlot(key, config[key]);
     // Charts view, like the charts of the HomeWizard app.
     c.view = empty(config.view) ? "display" : config.view;
-    if (!VIEWS.includes(c.view))
+    if (!VIEWS.includes(c.view)) {
       throw new Error(`view: expected ${VIEWS.join(" or ")}`);
+    }
     c.charts = toList(config.charts);
     for (const k of c.charts) {
-      if (!CHARTS.includes(k))
+      if (!CHARTS.includes(k)) {
         throw new Error(
           `charts: unknown chart "${k}"; expected ${CHARTS.join(", ")}`
         );
+      }
     }
     c.chart_entities = toList(config.chart_entities);
     c.show_view_switch = config.show_view_switch !== false;
     c.period = empty(config.period) ? "day" : config.period;
-    if (!PERIODS.includes(c.period))
+    if (!PERIODS.includes(c.period)) {
       throw new Error(`period: expected ${PERIODS.join(", ")}`);
+    }
     return c;
   };
 
@@ -330,10 +342,12 @@ const HWDC = (() => {
     if (pc.stat_rate_to) terms.push({ id: pc.stat_rate_to, sign: -1 });
     if (pc.stat_rate_to_home) terms.push({ id: pc.stat_rate_to_home, sign: 1 });
     if (pc.stat_rate_to_grid) terms.push({ id: pc.stat_rate_to_grid, sign: 1 });
-    if (pc.stat_rate_from_grid)
+    if (pc.stat_rate_from_grid) {
       terms.push({ id: pc.stat_rate_from_grid, sign: -1 });
-    if (pc.stat_rate_from_solar)
+    }
+    if (pc.stat_rate_from_solar) {
       terms.push({ id: pc.stat_rate_from_solar, sign: -1 });
+    }
     return terms;
   };
 
@@ -413,8 +427,9 @@ const HWDC = (() => {
         ].forEach((id) => add("batteryIn", id));
       } else if (s.type === "water" || s.type === "gas") {
         add(s.type, s.stat_energy_from);
-        if (s.stat_rate)
+        if (s.stat_rate) {
           out[`${s.type}Flow`].push({ id: s.stat_rate, sign: 1 });
+        }
         add(`${s.type}Cost`, s.stat_cost || costs[s.stat_energy_from]);
       } else if (s.type === "home") {
         if (s.stat_rate) out.homePower.push({ id: s.stat_rate, sign: 1 });
@@ -1197,8 +1212,9 @@ const HWDC = (() => {
             v !== null && v < 0 ? negative : {}
           );
         }
-        if (circle && m.gridPower !== null && m.gridPower < 0)
+        if (circle && m.gridPower !== null && m.gridPower < 0) {
           return make(m.gridExport, "energy", "today", color, negative);
+        }
         return make(m.gridImport, "energy", "today", color);
       }
       case "solar": {
@@ -1217,11 +1233,12 @@ const HWDC = (() => {
         const useNow =
           slot.mode === "now" ||
           (slot.mode === "auto" && power !== null && power !== 0);
-        if (useNow)
+        if (useNow) {
           return make(power, "power", "now", color, {
             icon: "consumption",
             ...(power !== null && power < 0 ? negative : {}),
           });
+        }
         const v = slot.energy
           ? todayValue(hass, slot.energy, "energy", today)
           : null;
@@ -1241,8 +1258,9 @@ const HWDC = (() => {
         const color = own(water ? c.color_water : c.color_gas);
         const now = water ? m.waterFlow : m.gasFlow;
         const amount = water ? m.water : m.gas;
-        if (slot.mode === "cost")
+        if (slot.mode === "cost") {
           return make(water ? m.waterCost : m.gasCost, "money", "cost", color);
+        }
         const useNow =
           slot.mode === "now" || (slot.mode === "auto" && flowing(now));
         if (useNow) return make(now, water ? "flow" : "gasflow", "now", color);
@@ -1279,8 +1297,9 @@ const HWDC = (() => {
   // Number and unit for a view. Circles switch to kW from 10 kW, rows from 1 kW.
   const formatView = (view, fmt, circle) => {
     const v = view.value;
-    if (v === null)
+    if (v === null) {
       return { text: "–", int: "–", frac: "", unit: view.unit || "" };
+    }
     const out = (f, unit) => ({ ...f, unit });
     const abs = Math.abs(v);
     switch (view.type) {
@@ -1455,14 +1474,16 @@ const HWDC = (() => {
     // line with "kWh" below, like the display.
     if (c.circle_1.source === "grid") {
       const segs = [];
-      if (m.gridImport !== null)
+      if (m.gridImport !== null) {
         segs.push(
           `<tspan fill="${c.color_grid}">↓</tspan>${esc(fmt(m.gridImport, 1).text)}`
         );
-      if (m.gridExport !== null)
+      }
+      if (m.gridExport !== null) {
         segs.push(
           `<tspan fill="${c.color_delivery}"${segs.length ? ' dx="16"' : ""}>↑</tspan>${esc(fmt(m.gridExport, 1).text)}`
         );
+      }
       if (segs.length) {
         parts.push(text(200, 410, 30, c.color_text, segs.join(""), "middle"));
         parts.push(text(200, 440, 22, c.color_text, "kWh", "middle"));
@@ -1567,8 +1588,9 @@ const HWDC = (() => {
       }
     }
     const p = {};
-    for (const part of tzFormatters[key].formatToParts(new Date(t)))
+    for (const part of tzFormatters[key].formatToParts(new Date(t))) {
       p[part.type] = part.value;
+    }
     return {
       y: Number(p.year),
       m: Number(p.month),
@@ -1620,8 +1642,9 @@ const HWDC = (() => {
     } else {
       start = zonedMidnight(p.y - offset, 1, 1, tz);
       end = zonedMidnight(p.y - offset + 1, 1, 1, tz);
-      for (let i = 0; i < 12; i += 1)
+      for (let i = 0; i < 12; i += 1) {
         buckets.push(zonedMidnight(p.y - offset, 1 + i, 1, tz));
+      }
     }
     if (period === "day" || period === "week") {
       const step = sp === "5minute" ? 300000 : 3600000;
@@ -1688,10 +1711,11 @@ const HWDC = (() => {
   };
   const addSeries = (list, n) => {
     const out = new Array(n).fill(null);
-    for (const s of list)
+    for (const s of list) {
       s.forEach((v, i) => {
         if (v !== null) out[i] = (out[i] === null ? 0 : out[i]) + v;
       });
+    }
     return out;
   };
   const total = (s) => sumOf(s);
@@ -1719,8 +1743,9 @@ const HWDC = (() => {
       ? config.charts
       : CHARTS.filter((k) => has[k]);
     const list = keys.filter((k) => k !== "battery").map((k) => ({ key: k }));
-    for (const entity of config.chart_entities)
+    for (const entity of config.chart_entities) {
       list.push({ key: "entity", entity });
+    }
     if (keys.includes("battery")) list.push({ key: "battery" });
     return list;
   };
@@ -1732,13 +1757,14 @@ const HWDC = (() => {
     for (const ch of charts) {
       if (ch.key === "water") add(change, [...src.water, ...src.waterCost]);
       if (ch.key === "gas") add(change, [...src.gas, ...src.gasCost]);
-      if (ch.key === "grid")
+      if (ch.key === "grid") {
         add(change, [
           ...src.gridImport,
           ...src.gridExport,
           ...src.gridCost,
           ...src.gridCompensation,
         ]);
+      }
       if (ch.key === "solar") add(change, src.solar);
       if (["consumption", "self_sufficiency", "standby"].includes(ch.key)) {
         add(change, [
@@ -2102,8 +2128,9 @@ const HWDC = (() => {
     min = Math.floor(min / step) * step;
     max = Math.ceil(max / step) * step;
     const ticks = [];
-    for (let t = min; t <= max + step / 2; t += step)
+    for (let t = min; t <= max + step / 2; t += step) {
       ticks.push(Number(t.toFixed(10)));
+    }
     return { min, max, step, ticks };
   };
 
@@ -2137,8 +2164,9 @@ const HWDC = (() => {
         );
       return `${T.week} ${week}`;
     }
-    if (range.period === "month")
+    if (range.period === "month") {
       return fmtDate({ month: "long", year: "numeric" });
+    }
     return fmtDate({ year: "numeric" });
   };
 
@@ -2155,11 +2183,12 @@ const HWDC = (() => {
         return new Intl.DateTimeFormat(loc, opts).format(new Date(t));
       }
     };
-    if (range.period === "day")
+    if (range.period === "day") {
       return [2, 7, 12, 17, 22].map((h) => [
         range.start + h * 3600000,
         `${String(h).padStart(2, "0")}:00`,
       ]);
+    }
     if (range.period === "week") {
       const out = [];
       for (let i = 0; i < 7; i += 1) {
@@ -2222,17 +2251,19 @@ const HWDC = (() => {
     const hy = (short ? 10 : 14) + f;
     let hx = pad + 2;
     for (const h of heads) {
-      if (h.arrow)
+      if (h.arrow) {
         parts.push(
           text(hx.toFixed(1), hy, Math.round(f * 0.73), h.color, h.arrow)
         );
+      }
       hx += arrowW(h, f);
       parts.push(text(hx.toFixed(1), hy, f, h.color, esc(h.num)));
       hx += h.num.length * f * 0.56 + 4;
-      if (h.unit)
+      if (h.unit) {
         parts.push(
           text(hx.toFixed(1), hy, F.unit, sub, esc(h.unit), undefined, 0.7)
         );
+      }
       hx += unitW(h);
     }
     const titleY = hy + (short ? 18 : 22);
@@ -2372,10 +2403,11 @@ const HWDC = (() => {
             parts.push(
               `<path d="${line}L${seg[seg.length - 1][0].toFixed(1)} ${CH.bottom}L${seg[0][0].toFixed(1)} ${CH.bottom}Z" fill="url(#${id})"/>`
             );
-            if (!s.faint)
+            if (!s.faint) {
               parts.push(
                 `<path d="${line}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
               );
+            }
           }
           seg = [];
         };
@@ -2396,10 +2428,11 @@ const HWDC = (() => {
       } else {
         let seg = [];
         const flush = () => {
-          if (seg.length)
+          if (seg.length) {
             parts.push(
               `<path d="${seg.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join("")}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round"/>`
             );
+          }
           seg = [];
         };
         s.values.forEach((v, i) => {
@@ -2409,7 +2442,7 @@ const HWDC = (() => {
         flush();
       }
     });
-    if (!values.length)
+    if (!values.length) {
       parts.push(
         text(
           Math.round((CH.x0 + CH.x1) / 2),
@@ -2421,6 +2454,7 @@ const HWDC = (() => {
           0.5
         )
       );
+    }
     // Pointer line and label, moved by the card. The label has a halo in the background colour,
     // so it stays readable over the title and the grid lines.
     parts.push(
@@ -2522,8 +2556,9 @@ const HWDC = (() => {
       data[key] = { ...s, color: s.color || "" };
       if (s.mode === null) delete data[key].mode;
     }
-    if (empty(data.color_background))
+    if (empty(data.color_background)) {
       data.color_background = COLOR_DEFAULTS.color_background;
+    }
     // Show the defaults, so the switch is on and the sign is filled in when the config is empty.
     data.use_energy_settings = config.use_energy_settings !== false;
     data.show_view_switch = config.show_view_switch !== false;
@@ -2575,11 +2610,12 @@ const HWDC = (() => {
           },
         },
       ];
-      if (slot.source === "entity")
+      if (slot.source === "entity") {
         items.push({
           name: "entity",
           selector: { entity: { filter: { domain: "sensor" } } },
         });
+      }
       if (slot.source === "device") {
         items.push({
           name: "power",
@@ -2631,8 +2667,9 @@ const HWDC = (() => {
           })),
         });
       }
-      if (slot.source !== "none")
+      if (slot.source !== "none") {
         items.push({ name: "color", selector: { text: {} } });
+      }
       const modeLabel = spec.modes.length > 1 ? `, ${T.mode[slot.mode]}` : "";
       return {
         name: key,
@@ -2822,13 +2859,15 @@ const HWDC = (() => {
       if (nv.source !== before.source) {
         const def = SLOT_DEFAULTS[key];
         const fresh = { source: nv.source };
-        if (spec.modes.length > 1)
+        if (spec.modes.length > 1) {
           fresh.mode = nv.source === def.source ? def.mode : spec.start;
+        }
         out[key] = fresh;
         continue;
       }
-      if (spec.modes.length <= 1)
-        delete nv.mode; // nothing to choose
+      if (spec.modes.length <= 1) {
+        delete nv.mode;
+      } // nothing to choose
       else if (!spec.modes.includes(nv.mode)) nv.mode = spec.modes[0];
       for (const k of GOAL_KEYS) {
         const mode = Object.keys(GOAL_KEY).find((m) => GOAL_KEY[m] === k);
@@ -2836,23 +2875,27 @@ const HWDC = (() => {
           empty(nv[k]) ||
           spec.goals[mode] === undefined ||
           Number(nv[k]) === spec.goals[mode]
-        )
+        ) {
           delete nv[k];
+        }
       }
       if (empty(nv.color)) delete nv.color;
       if (nv.source !== "entity" || empty(nv.entity)) delete nv.entity;
-      for (const k of ["power", "energy"])
+      for (const k of ["power", "energy"]) {
         if (nv.source !== "device" || empty(nv[k])) delete nv[k];
+      }
       out[key] = nv;
     }
-    for (const key of ENTITY_KEYS)
+    for (const key of ENTITY_KEYS) {
       if (toList(out[key]).length === 0) delete out[key];
+    }
     for (const key of COLOR_KEYS) {
       if (
         empty(out[key]) ||
         String(out[key]).toLowerCase() === COLOR_DEFAULTS[key]
-      )
+      ) {
         delete out[key];
+      }
     }
     for (const key of CHART_COLOR_KEYS) if (empty(out[key])) delete out[key];
     if (out.battery_power_sign === SIGNS[0]) delete out.battery_power_sign;
@@ -2860,8 +2903,9 @@ const HWDC = (() => {
     if (out.show_view_switch !== false) delete out.show_view_switch;
     if (out.view === "display") delete out.view;
     if (out.period === "day") delete out.period;
-    for (const key of ["charts", "chart_entities"])
+    for (const key of ["charts", "chart_entities"]) {
       if (toList(out[key]).length === 0) delete out[key];
+    }
     return out;
   };
 
@@ -3004,8 +3048,9 @@ if (
     setConfig(config) {
       const before = this._config;
       this._config = HWDC.normalizeConfig(config);
-      if (!before || before.view !== this._config.view)
+      if (!before || before.view !== this._config.view) {
         this._view = this._config.view;
+      }
       if (!before || before.period !== this._config.period) {
         this._period = this._config.period;
         this._offset = 0;
@@ -3117,8 +3162,9 @@ if (
             run !== this._run ||
             period !== this._period ||
             offset !== this._offset
-          )
+          ) {
             return;
+          }
           this._chart = { charts: list, data, sources };
         } else {
           const ids = [
@@ -3211,11 +3257,12 @@ if (
           const i =
             e.target && e.target.dataset ? Number(e.target.dataset.i) : NaN;
           const tile = root.querySelectorAll(".tile")[i];
-          if (tile)
+          if (tile) {
             tiles.scrollTo({
               top: tile.offsetTop - tiles.offsetTop,
               behavior: "smooth",
             });
+          }
         });
         // Redraw when the frame changes size, so each chart keeps filling it.
         if (typeof ResizeObserver !== "undefined") {
@@ -3235,11 +3282,12 @@ if (
         this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card class="display">${sw}<div class="svg"></div></ha-card>`;
       }
       const button = this.shadowRoot.querySelector(".switch");
-      if (button)
+      if (button) {
         button.addEventListener("click", (e) => {
           e.stopPropagation();
           this._toggleView();
         });
+      }
     }
 
     _render() {
@@ -3274,8 +3322,9 @@ if (
         this._deps &&
         deps.length === this._deps.length &&
         deps.every((v, i) => v === this._deps[i])
-      )
+      ) {
         return;
+      }
       this._deps = deps;
       try {
         const nl = HWDC.pickLang(lang) === "nl";
@@ -3335,8 +3384,9 @@ if (
         if (el.getAttribute(attr) !== value) el.setAttribute(attr, value);
       };
       root.querySelectorAll(".tabs button").forEach((b) => {
-        if (b.textContent !== T.period[b.dataset.p])
+        if (b.textContent !== T.period[b.dataset.p]) {
           b.textContent = T.period[b.dataset.p];
+        }
         const on = b.dataset.p === this._period;
         if (b.classList.contains("on") !== on) b.classList.toggle("on");
         set(b, "aria-pressed", String(on));
@@ -3344,8 +3394,9 @@ if (
       set(root.querySelector(".prev"), "aria-label", T.prev);
       const next = root.querySelector(".next");
       set(next, "aria-label", T.next);
-      if (next.disabled !== (this._offset === 0))
+      if (next.disabled !== (this._offset === 0)) {
         next.disabled = this._offset === 0;
+      }
       const tiles = root.querySelector(".tiles");
       set(tiles, "aria-label", T.charts);
       if (!this._chart) {
@@ -3412,8 +3463,9 @@ if (
     // frame and its text keeps its size on every screen.
     _tileSize() {
       const tiles = this.shadowRoot && this.shadowRoot.querySelector(".tiles");
-      if (!tiles || !tiles.clientWidth || !tiles.clientHeight)
+      if (!tiles || !tiles.clientWidth || !tiles.clientHeight) {
         return { width: 800, height: 480 };
+      }
       return {
         width: Math.round(tiles.clientWidth),
         height: Math.round(tiles.clientHeight),
@@ -3538,8 +3590,9 @@ if (
     }
   }
 
-  if (!customElements.get(HWDC.EDITOR_TAG))
+  if (!customElements.get(HWDC.EDITOR_TAG)) {
     customElements.define(HWDC.EDITOR_TAG, HomeWizardDisplayCardEditor);
+  }
   if (!customElements.get(HWDC.TAG)) {
     customElements.define(HWDC.TAG, HomeWizardDisplayCard);
     window.customCards = window.customCards || [];

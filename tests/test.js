@@ -31,12 +31,14 @@ const testAsync = (name, fn) => {
 const eq = (a, b, msg) => {
   const sa = JSON.stringify(a);
   const sb = JSON.stringify(b);
-  if (sa !== sb)
+  if (sa !== sb) {
     throw new Error(`${msg || "not equal"}: got ${sa}, expected ${sb}`);
+  }
 };
 const near = (a, b, msg) => {
-  if (a === null || a === undefined || Math.abs(a - b) > 1e-9)
+  if (a === null || a === undefined || Math.abs(a - b) > 1e-9) {
     throw new Error(`${msg || "not near"}: got ${a}, expected ${b}`);
+  }
 };
 const ok = (cond, msg) => {
   if (!cond) throw new Error(msg || "expected true");
@@ -45,8 +47,9 @@ const throws = (fn, re) => {
   try {
     fn();
   } catch (e) {
-    if (re && !re.test(String(e.message)))
-      throw new Error(`wrong error: ${e.message}`);
+    if (re && !re.test(String(e.message))) {
+      throw new Error(`wrong error: ${e.message}`, { cause: e });
+    }
     return;
   }
   throw new Error("expected an error");
@@ -1053,18 +1056,20 @@ test("editor: every field has a label in both languages", () => {
       ...Object.fromEntries(HWDC.SLOTS.map((k) => [k, { source: "device" }])),
     };
     walk(HWDC.editorSchema(all, lang, null), (s) => {
-      if (s.name)
+      if (s.name) {
         ok(
           HWDC.editorLabel(s, lang) !== s.name,
           `${lang}: label for ${s.name}`
         );
+      }
     });
     walk(HWDC.editorSchema({ top: { source: "entity" } }, lang, null), (s) => {
-      if (s.name)
+      if (s.name) {
         ok(
           HWDC.editorLabel(s, lang) !== s.name,
           `${lang}: label for ${s.name}`
         );
+      }
     });
   }
   eq(HWDC.editorLabel({ name: "goal_now" }, "nl-BE"), "Maximaal doel nu");
