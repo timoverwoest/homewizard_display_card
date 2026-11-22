@@ -468,11 +468,16 @@ test("luminance of colours", () => {
 
 test("day and night background follow the theme", () => {
   const c = HWDC.normalizeConfig({ color_background: "#f4f4f4", color_background_dark: "#05070b" });
-  eq(HWDC.effectiveColors(c, { themes: { darkMode: false } }), { background: "#f4f4f4", text: "#14161a", dark: false });
-  eq(HWDC.effectiveColors(c, { themes: { darkMode: true } }), { background: "#05070b", text: "#ffffff", dark: true });
+  const dayC = HWDC.effectiveColors(c, { themes: { darkMode: false } });
+  eq([dayC.background, dayC.text, dayC.dark], ["#f4f4f4", "#14161a", false]);
+  eq(dayC.accents, HWDC.LIGHT_ACCENTS, "darker accents on a light background");
+  eq(HWDC.effectiveColors(c, { themes: { darkMode: true } }), { background: "#05070b", text: "#ffffff", dark: true, accents: {} });
   eq(HWDC.effectiveColors(c, {}).background, "#f4f4f4", "no theme info = day");
   const one = HWDC.normalizeConfig({});
-  eq(HWDC.effectiveColors(one, { themes: { darkMode: true } }), { background: "#05070b", text: "#ffffff", dark: true }, "night empty = same as day");
+  eq(HWDC.effectiveColors(one, { themes: { darkMode: true } }), { background: "#05070b", text: "#ffffff", dark: true, accents: {} }, "night empty = same as day");
+  const own = HWDC.normalizeConfig({ color_background: "#f4f5f7", color_delivery: "#00aa00" });
+  const ownAcc = HWDC.effectiveColors(own, {}).accents;
+  ok(!("color_delivery" in ownAcc) && ownAcc.color_grid === "#7c3aed", "own accent colours are kept");
   const fixed = HWDC.normalizeConfig({ color_background: "#f4f4f4", color_text: "#ff0000" });
   eq(HWDC.effectiveColors(fixed, {}).text, "#ff0000", "own text colour wins");
 });
@@ -481,6 +486,7 @@ test("light day background renders dark text, night renders the display", () => 
   const states = scenario(100, 1, 0, 50, 0.1, 0, 0, 1).states;
   const day = draw({ ...hassNl(states), themes: { darkMode: false } }, { color_background: "#f4f4f4", color_background_dark: "#05070b" }).svg;
   ok(day.includes('fill="#f4f4f4"/>') && day.includes('fill="#14161a">100</text>'), "day: light background, dark numbers");
+  ok(day.includes('stroke="#7c3aed"') && !day.includes('stroke="#a259ff"'), "day: darker purple");
   const night = draw({ ...hassNl(states), themes: { darkMode: true } }, { color_background: "#f4f4f4", color_background_dark: "#05070b" }).svg;
   ok(night.includes('fill="#05070b"/>') && night.includes('fill="#ffffff">100</text>'), "night: display black, white numbers");
 });
@@ -512,6 +518,11 @@ test("editor: like the app, only the modes and goals of the chosen source", () =
   eq(goal, ["L/min"]);
   const bg = schema.find((s) => s.type === "grid" && s.schema.some((x) => x.name === "color_background"));
   eq(bg && bg.schema.map((x) => x.name), ["color_background", "color_background_dark"], "day and night background visible, not folded away");
+  const daySel = bg.schema[0].selector.select;
+  ok(daySel.custom_value, "own hex colour possible");
+  eq(daySel.options.map((o) => o.value), ["#05070b", "#f4f5f7"]);
+  eq(bg.schema[1].selector.select.options.map((o) => o.value), ["#05070b", "#1c1c1c"]);
+  eq(daySel.options[0].label, "Zwart van het display #05070b (standaard)");
 });
 
 test("editor: device and entity slots ask for their sensors", () => {

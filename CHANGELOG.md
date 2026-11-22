@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+* **Background suggestions.** The editor suggests light `#f4f5f7` by day and dark grey `#1c1c1c`
+  at night, next to the black of the display (still the default). Your own hex colour still works.
+* **Readable on light backgrounds.** On a light background the card uses darker accent colours
+  for the grid, delivery, battery, water and gas, unless you set those colours yourself.
+
 ## v0.2.0 - 2026-11-22
 
 * **Day and night background.** New option `color_background_dark`: the background while Home

@@ -158,13 +158,22 @@ zoals hij is.
 **Dag en nacht.** De kaart volgt de lichte of donkere modus van Home Assistant, net als de rest
 van je dashboard: in je profiel volgt **Thema** op *Automatisch* je apparaat, of kies *Licht* of
 *Donker*. In de donkere modus gebruikt de kaart `color_background_dark`; laat die leeg voor één
-achtergrond. Bijvoorbeeld een lichte kaart overdag en 's nachts het zwart van het display:
+achtergrond.
+
+Standaard is de kaart zwart zoals het display, overdag en 's nachts. De editor stelt twee kleuren
+voor die juist opgaan in het thema: **licht `#f4f5f7`** overdag en **donkergrijs `#1c1c1c`** (de
+kaartkleur van het donkere thema) 's nachts. Je kunt ook een eigen hex-kleur typen.
 
 ```yaml
 type: custom:homewizard-display-card
-color_background: "#f4f4f4"
-color_background_dark: "#05070b"
+color_background: "#f4f5f7"
+color_background_dark: "#1c1c1c"
 ```
+
+Op een lichte achtergrond gebruikt de kaart donkerdere varianten van de accentkleuren, zodat
+ringen, balkjes en eenheden leesbaar blijven: `#7c3aed` voor het net, `#4d8f1a` voor levering,
+`#6d8fa3` voor de accu, `#1f6fd6` voor water en `#c27a00` voor gas. Kleuren die je zelf instelt,
+blijven zoals ze zijn.
 
 ### Voorbeeld
 

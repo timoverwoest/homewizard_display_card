@@ -68,6 +68,17 @@ const HWDC = (() => {
     color_text: null,
   };
   const COLOR_KEYS = Object.keys(COLOR_DEFAULTS);
+  // Darker accents for a light background, so rings, bars and units keep enough contrast.
+  // Only used for colours the user did not set.
+  const LIGHT_ACCENTS = {
+    color_grid: "#7c3aed",
+    color_delivery: "#4d8f1a",
+    color_battery: "#6d8fa3",
+    color_water: "#1f6fd6",
+    color_gas: "#c27a00",
+  };
+  // Suggestions in the editor. The default stays the black of the display, by day and by night.
+  const BACKGROUND_SUGGESTIONS = { display: "#05070b", day: "#f4f5f7", night: "#1c1c1c" };
   const SIGNS = ["discharge_positive", "charge_positive"];
   // A colour ends up inside an SVG attribute, so only plain CSS colour syntax is accepted.
   const COLOR_RE = /^[#a-zA-Z0-9(),.%\s-]{1,64}$/;
@@ -116,8 +127,15 @@ const HWDC = (() => {
     const dark = Boolean(hass && hass.themes && hass.themes.darkMode);
     const background = dark && c.color_background_dark ? c.color_background_dark : c.color_background;
     const lum = luminance(background);
-    const text = c.color_text || (lum !== null && lum > 0.4 ? "#14161a" : "#ffffff");
-    return { background, text, dark };
+    const light = lum !== null && lum > 0.4;
+    const text = c.color_text || (light ? "#14161a" : "#ffffff");
+    const accents = {};
+    if (light) {
+      for (const [key, value] of Object.entries(LIGHT_ACCENTS)) {
+        if (String(c[key]).toLowerCase() === COLOR_DEFAULTS[key]) accents[key] = value;
+      }
+    }
+    return { background, text, dark, accents };
   };
 
   const normalizeSlot = (key, raw) => {
@@ -594,8 +612,8 @@ const HWDC = (() => {
         color_text: "Text",
       },
       helpers: {
-        color_background: "Hex colour; default #05070b, the black of the display",
-        color_background_dark: "Used while Home Assistant shows a dark theme; empty = same as day",
+        color_background: "Pick a suggestion or type your own hex colour",
+        color_background_dark: "While Home Assistant shows a dark theme; empty = same as day",
         color_text: "Empty = automatic: white on a dark background, black on a light one",
         sources: "Leave empty to use the Energy settings",
         grid_power: "Positive = taking from the grid, negative = returning",
@@ -609,6 +627,11 @@ const HWDC = (() => {
         energy: "Total meter in kWh; today's value comes from the statistics",
       },
       sign: { discharge_positive: "Positive = discharging (Home Assistant standard)", charge_positive: "Positive = charging (e.g. HomeWizard Plug-In Battery)" },
+      bg: {
+        display: "Black of the display #05070b (default)",
+        day: "Light #f4f5f7: fits a light theme",
+        night: "Dark grey #1c1c1c: fits a dark theme",
+      },
     },
     nl: {
       source: {
@@ -660,8 +683,8 @@ const HWDC = (() => {
         color_text: "Tekst",
       },
       helpers: {
-        color_background: "Hex-kleur; standaard #05070b, het zwart van het display",
-        color_background_dark: "Gebruikt zolang Home Assistant een donker thema toont; leeg = zelfde als overdag",
+        color_background: "Kies een voorstel of typ een eigen hex-kleur",
+        color_background_dark: "Zolang Home Assistant een donker thema toont; leeg = zelfde als overdag",
         color_text: "Leeg = automatisch: wit op een donkere achtergrond, zwart op een lichte",
         sources: "Leeg laten = uit de Energie-instellingen",
         grid_power: "Positief = afname van het net, negatief = teruglevering",
@@ -675,6 +698,11 @@ const HWDC = (() => {
         energy: "Totaalmeter in kWh; de waarde van vandaag komt uit de statistieken",
       },
       sign: { discharge_positive: "Positief = ontladen (standaard van Home Assistant)", charge_positive: "Positief = laden (bijv. HomeWizard Plug-In Battery)" },
+      bg: {
+        display: "Zwart van het display #05070b (standaard)",
+        day: "Licht #f4f5f7: past bij een licht thema",
+        night: "Donkergrijs #1c1c1c: past bij een donker thema",
+      },
     },
   };
 
@@ -893,7 +921,7 @@ const HWDC = (() => {
   const renderSvg = (m, config, fmt, lang, hass, today) => {
     const T = TEXT[pickLang(lang)];
     const eff = effectiveColors(config, hass);
-    const c = { ...config, color_background: eff.background, color_text: eff.text };
+    const c = { ...config, ...eff.accents, color_background: eff.background, color_text: eff.text };
     const parts = [];
     const spoken = [];
     for (const key of SLOTS) {
@@ -1011,8 +1039,15 @@ const HWDC = (() => {
         type: "grid",
         name: "",
         schema: [
-          { name: "color_background", selector: { text: {} } },
-          { name: "color_background_dark", selector: { text: {} } },
+          // A list with suggestions that also takes your own hex colour (custom_value).
+          { name: "color_background", selector: { select: { custom_value: true, mode: "dropdown", options: [
+            { value: BACKGROUND_SUGGESTIONS.display, label: T.bg.display },
+            { value: BACKGROUND_SUGGESTIONS.day, label: T.bg.day },
+          ] } } },
+          { name: "color_background_dark", selector: { select: { custom_value: true, mode: "dropdown", options: [
+            { value: BACKGROUND_SUGGESTIONS.display, label: T.bg.display },
+            { value: BACKGROUND_SUGGESTIONS.night, label: T.bg.night },
+          ] } } },
         ],
       },
       {
@@ -1098,7 +1133,7 @@ const HWDC = (() => {
 
   return {
     VERSION, TAG, EDITOR_TAG, SOURCES, SLOTS, SLOT_DEFAULTS, COLOR_DEFAULTS, ENTITY_KEYS, TEXT,
-    luminance, effectiveColors,
+    luminance, effectiveColors, LIGHT_ACCENTS, BACKGROUND_SUGGESTIONS,
     normalizeConfig, normalizeSlot, sourcesFromPrefs, resolveSources, needsCosts, meterIds, slotMeterIds, convert,
     stateValue, gasKind, fetchToday, todayValue, computeModel, msToNextRefresh, dayKey, numberLocale,
     formatter, pickLang, editorLang, slotView, formatView, renderSvg, editorData, editorSchema,

@@ -154,13 +154,21 @@ in both cases. An entity without statistics is shown as it is.
 **Day and night.** The card follows the light or dark mode of Home Assistant, like the rest of
 your dashboard: under your profile, **Theme** set to *Auto* follows your device, or choose *Light*
 or *Dark*. In dark mode the card uses `color_background_dark`; leave it empty to keep one
-background. For example a light card by day and the black of the display at night:
+background.
+
+By default the card is black like the display, by day and at night. The editor suggests two
+colours that blend in with the theme instead: **light `#f4f5f7`** by day and **dark grey
+`#1c1c1c`** (the card colour of the dark theme) at night. You can also type your own hex colour.
 
 ```yaml
 type: custom:homewizard-display-card
-color_background: "#f4f4f4"
-color_background_dark: "#05070b"
+color_background: "#f4f5f7"
+color_background_dark: "#1c1c1c"
 ```
+
+On a light background the card uses darker variants of the accent colours, so rings, bars and
+units stay readable: `#7c3aed` for the grid, `#4d8f1a` for delivery, `#6d8fa3` for the battery,
+`#1f6fd6` for water and `#c27a00` for gas. Colours you set yourself are kept.
 
 ### Example
 
