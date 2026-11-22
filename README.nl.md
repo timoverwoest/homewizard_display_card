@@ -5,31 +5,31 @@
 <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/logo.png" alt="Logo: een klein scherm met één grote ring, twee kleine ringen en drie balkjes" width="96" align="right">
 
 Een dashboardkaart voor Home Assistant die het scherm **Usage Overview** van het HomeWizard Energy
-Display nabouwt: netvermogen, afname en teruglevering van vandaag, thuisaccu, zon en water in één
-oogopslag.
+Display nabouwt: drie cirkels en drie regels met stroom, zon, thuisaccu, water en gas, nu, vandaag
+of in kosten.
 
-<img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot.png" alt="De kaart bij afname van het net: paarse ring met 420 W, accu op 58 % die levert, 12,6 kWh zon vandaag, 214 liter water vandaag" width="49%"> <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-export.png" alt="De kaart bij teruglevering: groene ring met -2150 W, accu op 88 % die laadt, 14,2 kWh zon vandaag, water loopt met 7,5 L/min" width="49%">
+<img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot.png" alt="Standaardindeling bij afname van het net: paarse ring met 1240 W, accu op 58 % die levert, 12,6 kWh zon vandaag, 214 liter water vandaag" width="49%"> <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-export.png" alt="Standaardindeling bij teruglevering: groene ring met -2150 W, accu op 88 % die laadt, 14,2 kWh zon vandaag, water loopt met 7,5 L/min" width="49%">
 
-* **Werkt met je Energie-instellingen.** Net (ook met twee tarieven), zon, thuisaccu en water
-  worden vanzelf gevonden. Geen hulpsensoren nodig: net als het Energie-dashboard haalt de kaart
-  de waarden van vandaag uit de statistieken van Home Assistant, en telt daartussen live door.
-* **Lijkt op het display.** Afname is paars en loopt rechtsom; levering (teruglevering, zon, een
-  accu die ontlaadt) is groen en loopt linksom.
-* **Visuele editor** in het Nederlands en Engels. Getallen volgen de getalnotatie van je profiel.
+<img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-gas-water.png" alt="Gas, water en stroom: netvermogen 860 W, vandaag 187 liter water en 2,36 m³ gas, en de kosten van vandaag voor stroom, water en gas" width="49%">
+
+* **Ingesteld zoals het display.** Elke cirkel en regel toont een bron (hoofdaansluiting,
+  zonnepanelen, thuisaccu, water, gas, stroomverbruik, zelfvoorzienend, een stopcontact of
+  kWh-meter, of een willekeurige sensor) in een weergave: **Nu**, **Vandaag**, **Auto** of
+  **Kosten**, met een maximaal doel.
+* **Werkt met je Energie-instellingen.** Net (ook met twee tarieven), zon, thuisaccu's, water, gas
+  en hun prijzen worden vanzelf gevonden. De waarden van vandaag komen uit de statistieken van Home
+  Assistant, net als bij het Energie-dashboard, en tellen daartussen live door. Meestal zijn er
+  geen hulpsensoren nodig.
+* **Lijkt op het display.** Afname is paars: ringen vullen rechtsom, balkjes van links naar
+  rechts. Levering (teruglevering, zon, een accu die ontlaadt) is groen: ringen vullen linksom,
+  balkjes van rechts naar links.
+* **Visuele editor** in het Nederlands en Engels, ingedeeld zoals de HomeWizard-app. Getallen
+  volgen de getalnotatie van je profiel. Achtergrondkleur naar keuze.
 * **Eén klein bestand, geen afhankelijkheden.** Past in een secties-weergave en schaalt mee met
   elke breedte.
 
 De gegevens komen uit Home Assistant, bijvoorbeeld van de officiële HomeWizard-integratie. Je hebt
 geen HomeWizard Energy Display nodig, en andere meters werken ook.
-
-## Wat de kaart toont
-
-| Onderdeel | Toont |
-|-----------|-------|
-| Grote ring | Netvermogen nu (W, vanaf 10 kW in kW). De boog is de energie die je vandaag van het net **afnam**, tegen het doel: paars, rechtsom. Lever je terug aan het net, dan wordt de ring groen en linksom en is de boog de energie die je vandaag **terugleverde**. Onder de ring: ↓ afname vandaag en ↑ teruglevering vandaag (vanaf 0,05 kWh). |
-| Kleine ring boven | Laadstand van de thuisaccu. Groen en linksom zolang de accu levert (meer dan 20 W). |
-| Kleine ring onder | Zonne-energie van vandaag tegen het doel: altijd groen en linksom. |
-| Rechterkolom | Afname van het net vandaag, zon vandaag, en water: liters vandaag, of het debiet in L/min zolang er water loopt. Elk met een balk tegen het doel. |
 
 ## Installatie
 
@@ -68,60 +68,134 @@ Staat de kaart eenmaal in de catalogus, dan zoek je onder **Instellingen → Mar
 
 ## Instellen
 
-Voeg de kaart toe via de kaartkiezer (zoek op "HomeWizard"), of in YAML:
+Voeg de kaart toe via de kaartkiezer (zoek op "HomeWizard"). De editor is ingedeeld zoals de
+display-instellingen in de HomeWizard-app: per cirkel en regel een blok (**Cirkel 1–3**,
+**Bovenaan**, **Midden**, **Onderaan**) met wat het toont, de weergave en de maximale doelen,
+daarna de achtergrondkleur, de sensoren en de andere kleuren.
+
+In YAML is de kortste versie:
 
 ```yaml
 type: custom:homewizard-display-card
 ```
 
-Meer is niet nodig als je [Energie-instellingen](https://my.home-assistant.io/redirect/config_energy/)
-klaar zijn. Elke waarde kan ook uit een eigen entiteit komen; velden die je leeg laat, worden
-aangevuld uit de Energie-instellingen.
+Dat geeft de standaard Usage Overview van het display, gevuld uit je
+[Energie-instellingen](https://my.home-assistant.io/redirect/config_energy/):
 
-| Optie | Standaard | Uitleg |
-|-------|-----------|--------|
-| `grid_power` | Energie-instellingen | Vermogenssensor van de netaansluiting: positief = afname van het net, negatief = teruglevering. W of kW. |
-| `grid_import` | Energie-instellingen | Meter(s) voor afname van het net. Eén entiteit of een lijst, bijvoorbeeld één per tarief. |
-| `grid_export` | Energie-instellingen | Meter(s) voor teruglevering aan het net. |
-| `solar_energy` | Energie-instellingen | Opbrengstmeter(s) van de zonnepanelen. |
-| `battery_soc` | Energie-instellingen | Laadstand van de thuisaccu (%). Meerdere accu's in de Energie-instellingen: het gemiddelde. |
-| `battery_power` | Energie-instellingen | Vermogen van de thuisaccu. Alleen gebruikt om te zien wanneer de accu levert. |
-| `battery_power_sign` | `discharge_positive` | Zet op `charge_positive` als je `battery_power`-sensor **laden** als positief telt, zoals de HomeWizard Plug-In Battery. Accu's uit de Energie-instellingen volgen altijd de afspraak van Home Assistant. |
-| `water` | Energie-instellingen | Watermeter(s). |
-| `water_flow` | Energie-instellingen | Sensor voor het waterdebiet (L/min, m³/h enzovoort). |
-| `water_display` | `auto` | `auto`: het debiet zolang er water loopt, anders liters vandaag. `volume` of `flow` toont altijd die. |
-| `use_energy_settings` | `true` | `false`: alleen de entiteiten gebruiken die je zelf instelt. |
-| `goal_grid_import` | `25` | Dagdoel in kWh voor afname van het net. |
-| `goal_grid_export` | `25` | Dagdoel in kWh voor teruglevering. |
-| `goal_solar` | `25` | Dagdoel in kWh voor zon. |
-| `goal_water` | `500` | Dagdoel in liters. |
-| `goal_water_flow` | `10` | Doel voor het debiet in L/min. |
-| `color_grid` | `#a259ff` | Kleur voor afname van het net. |
-| `color_delivery` | `#86d03c` | Kleur voor levering: teruglevering, zon, een accu die ontlaadt. |
-| `color_battery` | `#b9d2e0` | Kleur van de accuring als de accu niet levert. |
-| `color_water` | `#3d8ff5` | Kleur voor water. |
-| `color_text` | `#ffffff` | Kleur van de getallen. |
-| `color_background` | `#05070b` | Achtergrondkleur. |
+| Plek | Sleutel | Standaard |
+|------|---------|-----------|
+| Cirkel 1 (groot) | `circle_1` | Hoofdaansluiting, nu, doel 7000 W |
+| Cirkel 2 | `circle_2` | Thuisaccu, doel 100 % |
+| Cirkel 3 | `circle_3` | Zonnepanelen, vandaag, doel 25 kWh |
+| Bovenaan | `top` | Hoofdaansluiting, vandaag, doel 25 kWh |
+| Midden | `middle` | Zonnepanelen, vandaag, doel 25 kWh |
+| Onderaan | `bottom` | Water, auto, doelen 10 L/min en 500 L |
 
-Meters (`grid_import`, `grid_export`, `solar_energy`, `water`) mogen totaalmeters zijn, zoals in de
-Energie-instellingen, of dagtellers zoals een Nutsmeter die om middernacht op nul gaat. De kaart
-vraagt in beide gevallen de verandering van vandaag op uit de statistieken van Home Assistant. Een
-entiteit zonder statistieken wordt getoond zoals hij is.
+### Wat een cirkel of regel kan tonen
 
-### Voorbeeld: eigen entiteiten
+Elke plek krijgt `source`, `mode` en de doelen die bij die weergave horen.
+
+| `source` | Nu (`goal_now`) | Vandaag (`goal_today`) | Auto | Kosten (`goal_cost`) |
+|----------|-----------------|------------------------|------|----------------------|
+| `grid`: hoofdaansluiting | Vermogen in W; groen bij teruglevering (7000 W) | Afgenomen van het net, kWh (25 kWh) | – | Kosten van vandaag min de vergoeding (10) |
+| `solar`: zonnepanelen | Opwek in W (5000 W) | Opwek in kWh (25 kWh) | ✓ | – |
+| `battery`: thuisaccu | Laadstand in % (100 %) | – | – | – |
+| `water` | Debiet in L/min (10 L/min) | Liters (500 L) | ✓ | Kosten van vandaag (2) |
+| `gas` | Debiet in m³/h (2 m³/h) | m³, of kWh bij een gasmeter in kWh (5) | ✓ | Kosten van vandaag (10) |
+| `consumption`: stroomverbruik van het huis | W (7000 W) | kWh (25 kWh) | – | – |
+| `self_sufficiency`: deel dat niet van het net kwam | % (100 %) | % (100 %) | – | – |
+| `device`: Energy Socket, kWh-meter en dergelijke | W uit `power`; negatief = opwek (3000 W) | kWh uit `energy` (10 kWh) | ✓ | – |
+| `entity`: elke sensor, bijvoorbeeld een temperatuur | Waarde en eenheid van `entity` (100) | – | – | – |
+| `none` | Niets | | | |
+
+* **Auto** toont *nu* zolang er iets stroomt of wordt opgewekt, en *vandaag* als dat 0 is.
+* **Kosten** gebruiken de prijzen uit je Energie-instellingen; Home Assistant maakt de
+  kostensensoren zelf. De munteenheid volgt je instellingen van Home Assistant. Een negatieve
+  waarde (je verdiende meer dan je betaalde) staat in het groen.
+* **Stroomverbruik** en **zelfvoorzienend** worden berekend uit het net, de zonnepanelen en de
+  thuisaccu's in je Energie-instellingen, op dezelfde manier als het Energie-dashboard.
+* Onder de grote ring zie je, als die de hoofdaansluiting toont, ↓ afname en ↑ teruglevering van
+  vandaag, zoals op het display. Lever je terug, dan toont een grote ring in de weergave
+  *vandaag* wat je vandaag terugleverde.
+* Een doel is de waarde waarbij de ring of het balkje vol is. Met `color` krijgt één cirkel of
+  regel een eigen kleur.
+
+### Sensoren
+
+Elke waarde kan uit een eigen entiteit komen; velden die je leeg laat, worden aangevuld uit de
+Energie-instellingen.
+
+| Optie | Uitleg |
+|-------|--------|
+| `grid_power` | Vermogen van de netaansluiting: positief = afname van het net, negatief = teruglevering. W of kW. |
+| `grid_import`, `grid_export` | Meter(s) voor afname van en teruglevering aan het net. Eén entiteit of een lijst, bijvoorbeeld één per tarief. |
+| `solar_power`, `solar_energy` | Vermogen en opbrengstmeter(s) van de zonnepanelen. |
+| `battery_soc` | Laadstand (%). Een lijst van meerdere accu's geeft het gemiddelde. |
+| `battery_power` | Vermogen van de accu. Een lijst wordt opgeteld. Bepaalt wanneer de accu levert. |
+| `battery_power_sign` | `discharge_positive` (standaard, de afspraak van Home Assistant) of `charge_positive` als je `battery_power`-sensor **laden** als positief telt, zoals de HomeWizard Plug-In Battery. Accu's uit de Energie-instellingen volgen altijd de afspraak van Home Assistant. |
+| `water`, `water_flow` | Watermeter(s) en de debietsensor (L/min, m³/h enzovoort). |
+| `gas`, `gas_flow` | Gasmeter(s) en een debietsensor (m³/h). |
+| `use_energy_settings` | `false`: alleen de entiteiten gebruiken die je zelf instelt. Standaard `true`. |
+
+Meters mogen totaalmeters zijn, zoals in de Energie-instellingen, of dagtellers zoals een
+Nutsmeter die om middernacht op nul gaat. De kaart vraagt in beide gevallen de verandering van
+vandaag op uit de statistieken van Home Assistant. Een entiteit zonder statistieken wordt getoond
+zoals hij is.
+
+### Kleuren
+
+| Optie | Standaard | Gebruikt voor |
+|-------|-----------|---------------|
+| `color_background` | `#05070b` (het zwart van het display) | Achtergrond; elke hex-kleur, zoals `#000000` of `#1c1c1c` |
+| `color_grid` | `#a259ff` | Hoofdaansluiting en stroomverbruik |
+| `color_delivery` | `#86d03c` | Levering: teruglevering, zon, een accu die ontlaadt, zelfvoorzienend |
+| `color_battery` | `#b9d2e0` | Thuisaccu zolang die niet levert, en eigen sensoren |
+| `color_water` | `#3d8ff5` | Water |
+| `color_gas` | `#f5a524` | Gas |
+| `color_text` | `#ffffff` | Getallen |
+
+### Voorbeeld
+
+Gas in cirkel 3, water met zijn debietsensor onderaan, en een iets lichtere achtergrond:
 
 ```yaml
 type: custom:homewizard-display-card
-grid_power: sensor.grid_power
-grid_import:
-  - sensor.energy_import_tariff_1
-  - sensor.energy_import_tariff_2
-battery_soc: sensor.plug_in_battery_state_of_charge
-battery_power: sensor.plug_in_battery_power
-battery_power_sign: charge_positive
-goal_grid_import: 15
-goal_water: 300
+circle_1:
+  source: grid
+  mode: now
+  goal_now: 7000
+circle_3:
+  source: gas
+  mode: today
+  goal_today: 4
+bottom:
+  source: water
+  mode: auto
+  goal_now: 10
+  goal_today: 500
+water_flow: sensor.watermeter_active_water_usage
+gas: sensor.p1_meter_total_gas
+color_background: "#101418"
 ```
+
+## Heb ik hulpsensoren nodig?
+
+Meestal niet. Dit rekent de kaart zelf uit: de totalen van vandaag (uit de statistieken), kosten
+(uit de Energie-instellingen), stroomverbruik en zelfvoorzienendheid, meerdere tarieven
+(opgeteld) en meerdere accu's (gemiddelde laadstand, totaal vermogen). Alleen in deze gevallen heb
+je een hulpsensor nodig. Hulpsensoren maak je onder **Instellingen → Apparaten & diensten →
+Helpers → Helper aanmaken**.
+
+| Wanneer | Waarom | Hoe |
+|---------|--------|-----|
+| Je wilt water of gas in **nu** of **auto**, maar de meter heeft geen debietsensor (bijvoorbeeld de gasmeter via de P1-meter, of een watermeter zonder) | Nu heeft een debiet nodig | **Afgeleide sensor** op de water- of gasmeter. Tijdseenheid **minuten** voor water (geeft m³/min, de kaart rekent om naar L/min), **uren** voor gas (geeft m³/h). Een tijdvenster van 5 minuten strijkt de stapjes van de meter glad. Zet hem in `water_flow` of `gas_flow`. |
+| Je wilt zon in **nu**, maar de omvormer heeft alleen een energiemeter | Nu heeft vermogen nodig | **Afgeleide sensor** op de zonnemeter met tijdseenheid **uren** (kWh/h is kW). Zet hem in `solar_power`. |
+| Je netvermogen telt teruglevering als positief, of afname en teruglevering zijn twee sensoren | De kaart wil één sensor, positief = afname | Het beste: vul hem in de Energie-instellingen in bij het vermogen van het net (als *omgekeerd* of als *twee sensoren*); Home Assistant maakt dan de juiste sensor en de kaart vindt hem. Anders een **Sjabloonsensor** met `{{ -(states('sensor.grid_power') | float(0)) }}` of afname min teruglevering. |
+| Je wilt **kosten**, maar hebt geen prijzen in de Energie-instellingen | Kosten komen uit de kostensensoren van Home Assistant | Geen hulpsensor: voeg de prijs (vast, of een entiteit met de actuele prijs) toe aan de meter in de Energie-instellingen. |
+| Een meter heeft geen statistieken (geen state class) | Vandaag komt uit de statistieken | **Nutsmeter** op die meter met resetcyclus *dagelijks*; die heeft wel statistieken. |
+| Je wilt gas, maar het staat niet in de Energie-instellingen | – | Geen hulpsensor: zet `gas` op je gasmeter. Voor gaskosten voeg je gas met zijn prijs toe aan de Energie-instellingen. |
+
+Telt je accu laden als positief? Geen hulpsensor: zet `battery_power_sign: charge_positive`.
 
 ## Hoe "vandaag" werkt
 
@@ -130,16 +204,15 @@ gegevens als het Energie-dashboard. De dag begint om middernacht in de tijdzone 
 Statistieken worden elke 5 minuten opgeslagen; daartussen telt de kaart op wat de meter sinds de
 laatste statistiek bijhield, zodat de getallen blijven lopen.
 
-Het HomeWizard Energy Display kan zijn dag op een iets ander moment laten beginnen, waardoor zijn
-getallen een beetje kunnen afwijken van die op de kaart.
+Het HomeWizard Energy Display zet zijn dagtotalen 's nachts om 2.00 uur op nul. Tussen middernacht
+en twee uur, en in de totalen van de dag, kunnen zijn getallen daardoor afwijken van die op de
+kaart.
 
 ## Opmerkingen
 
-* De indeling ligt in deze versie vast op het scherm Usage Overview.
-* Hebben je Energie-instellingen geen vermogenssensor voor het net, de accu of het waterdebiet,
-  stel dan zelf `grid_power`, `battery_power` of `water_flow` in.
-* Gemaakt met de HomeWizard-integratie in gedachten (P1-meter, watermeter, Plug-In Battery), maar
-  elke sensor met een ondersteunde eenheid werkt.
+* De indeling ligt vast op het scherm Usage Overview: drie cirkels en drie regels.
+* Gemaakt met de HomeWizard-integratie in gedachten (P1-meter, watermeter, Energy Socket,
+  kWh-meter, Plug-In Battery), maar elke sensor met een ondersteunde eenheid werkt.
 
 ## Ontwikkelen
 

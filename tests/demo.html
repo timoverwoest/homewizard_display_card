@@ -51,7 +51,72 @@
 
   <script type="module">
     await customElements.whenDefined("homewizard-display-card");
-    const st = (state, unit) => ({ state: String(state), attributes: { unit_of_measurement: unit } });
+    const st = (state, unit, attrs) => ({ state: String(state), attributes: { unit_of_measurement: unit, ...(attrs || {}) } });
+
+    // Energy settings: two tariffs, solar, two batteries, water and gas, with prices.
+    const PREFS = {
+      energy_sources: [
+        { type: "grid", stat_energy_from: "sensor.demo_import_t1", stat_energy_to: "sensor.demo_export_t1", stat_rate: "sensor.demo_p1_power" },
+        { type: "grid", stat_energy_from: "sensor.demo_import_t2", stat_energy_to: "sensor.demo_export_t2" },
+        { type: "solar", stat_energy_from: "sensor.demo_solar_total", stat_rate: "sensor.demo_solar_power" },
+        { type: "battery", stat_energy_from: "sensor.demo_bat_out", stat_energy_to: "sensor.demo_bat_in", stat_rate: "sensor.demo_bat_power", stat_soc: "sensor.demo_bat_soc" },
+        { type: "battery", stat_energy_from: "sensor.demo_bat2_out", stat_energy_to: "sensor.demo_bat2_in", stat_rate: "sensor.demo_bat2_power", stat_soc: "sensor.demo_bat2_soc" },
+        { type: "water", stat_energy_from: "sensor.demo_water_total" },
+        { type: "gas", stat_energy_from: "sensor.demo_gas_total" },
+      ],
+      device_consumption: [],
+    };
+    const INFO = {
+      cost_sensors: {
+        "sensor.demo_import_t1": "sensor.demo_import_t1_cost",
+        "sensor.demo_import_t2": "sensor.demo_import_t2_cost",
+        "sensor.demo_export_t1": "sensor.demo_export_t1_compensation",
+        "sensor.demo_export_t2": "sensor.demo_export_t2_compensation",
+        "sensor.demo_water_total": "sensor.demo_water_total_cost",
+        "sensor.demo_gas_total": "sensor.demo_gas_total_cost",
+      },
+    };
+    // Today's change up to the last 5-minute statistic, and the reading at that moment.
+    const STATS = {
+      "sensor.demo_import_t1": { change: 3.1, last: 4210.0 },
+      "sensor.demo_import_t2": { change: 5.2, last: 6630.0 },
+      "sensor.demo_export_t1": { change: 1.4, last: 2100.0 },
+      "sensor.demo_export_t2": { change: 1.7, last: 3200.0 },
+      "sensor.demo_solar_total": { change: 12.4, last: 8120.0 },
+      "sensor.demo_bat_out": { change: 2.1, last: 300.0 },
+      "sensor.demo_bat_in": { change: 2.6, last: 320.0 },
+      "sensor.demo_bat2_out": { change: 1.0, last: 150.0 },
+      "sensor.demo_bat2_in": { change: 1.2, last: 170.0 },
+      "sensor.demo_water_total": { change: 211, last: 512300 },
+      "sensor.demo_gas_total": { change: 2100, last: 4321000 },
+      "sensor.demo_import_t1_cost": { change: 0.71, last: null },
+      "sensor.demo_import_t2_cost": { change: 1.64, last: null },
+      "sensor.demo_export_t1_compensation": { change: 0.12, last: null },
+      "sensor.demo_export_t2_compensation": { change: 0.15, last: null },
+      "sensor.demo_water_total_cost": { change: 0.24, last: null },
+      "sensor.demo_gas_total_cost": { change: 2.73, last: null },
+      "sensor.demo_socket_energy": { change: 0.9, last: 120.0 },
+    };
+    const autoStates = {
+      "sensor.demo_p1_power": st(1240, "W"),
+      "sensor.demo_import_t1": st(4210.0, "kWh"),
+      "sensor.demo_import_t2": st(6630.1, "kWh"),
+      "sensor.demo_export_t1": st(2100.0, "kWh"),
+      "sensor.demo_export_t2": st(3200.0, "kWh"),
+      "sensor.demo_solar_total": st(8120.2, "kWh"),
+      "sensor.demo_solar_power": st(860, "W"),
+      "sensor.demo_bat_soc": st(76, "%"),
+      "sensor.demo_bat2_soc": st(60, "%"),
+      "sensor.demo_bat_power": st(640, "W"),
+      "sensor.demo_bat2_power": st(-200, "W"),
+      "sensor.demo_water_total": st(512.303, "m³"),
+      "sensor.demo_water_flow": st(0, "L/min"),
+      "sensor.demo_gas_total": st(4321.0, "m³"),
+      "sensor.demo_socket_power": st(-420, "W"),
+      "sensor.demo_socket_energy": st(120.0, "kWh"),
+      "sensor.demo_room_temperature": st(21.4, "°C", { device_class: "temperature" }),
+      "sensor.demo_room_humidity": st(48, "%", { device_class: "humidity" }),
+    };
 
     // Scenarios with own entities (battery sensor counts charging as positive).
     const OWN = {
@@ -63,7 +128,7 @@
       battery_power_sign: "charge_positive",
       solar_energy: "sensor.demo_solar_today",
       water: "sensor.demo_water_today",
-      water_flow: "sensor.demo_water_flow",
+      water_flow: "sensor.demo_water_flow_own",
       use_energy_settings: false,
     };
     const scenario = (p, imp, exp, soc, waterM3, flow, bat, solar) => ({
@@ -72,46 +137,14 @@
       "sensor.demo_export_today": st(exp, "kWh"),
       "sensor.demo_battery_soc": st(soc, "%"),
       "sensor.demo_water_today": st(waterM3, "m³"),
-      "sensor.demo_water_flow": st(flow, "L/min"),
+      "sensor.demo_water_flow_own": st(flow, "L/min"),
       "sensor.demo_battery_power": st(bat, "W"),
       "sensor.demo_solar_today": st(solar, "kWh"),
     });
 
-    // Auto-detect: Energy settings with two tariffs, solar, battery and water.
-    const PREFS = {
-      energy_sources: [
-        { type: "grid", stat_energy_from: "sensor.demo_import_t1", stat_energy_to: "sensor.demo_export_t1", stat_rate: "sensor.demo_p1_power" },
-        { type: "grid", stat_energy_from: "sensor.demo_import_t2", stat_energy_to: "sensor.demo_export_t2", stat_rate: "sensor.demo_p1_power" },
-        { type: "solar", stat_energy_from: "sensor.demo_solar_total" },
-        { type: "battery", stat_energy_from: "sensor.demo_bat_out", stat_energy_to: "sensor.demo_bat_in", stat_rate: "sensor.demo_bat_power", stat_soc: "sensor.demo_bat_soc" },
-        { type: "water", stat_energy_from: "sensor.demo_water_total", stat_rate: "sensor.demo_water_flow_auto" },
-      ],
-      device_consumption: [],
-    };
-    // Today's change up to the last 5-minute statistic, and the meter reading at that moment.
-    const STATS = {
-      "sensor.demo_import_t1": { change: 3.1, last: 4210.0 },
-      "sensor.demo_import_t2": { change: 5.2, last: 6630.0 },
-      "sensor.demo_export_t1": { change: 1.4, last: 2100.0 },
-      "sensor.demo_export_t2": { change: 1.7, last: 3200.0 },
-      "sensor.demo_solar_total": { change: 12.4, last: 8120.0 },
-      "sensor.demo_water_total": { change: 211, last: 512300 },
-    };
-    const autoStates = {
-      "sensor.demo_p1_power": st(1240, "W"),
-      "sensor.demo_import_t1": st(4210.0, "kWh"),
-      "sensor.demo_import_t2": st(6630.1, "kWh"),
-      "sensor.demo_export_t1": st(2100.0, "kWh"),
-      "sensor.demo_export_t2": st(3200.0, "kWh"),
-      "sensor.demo_solar_total": st(8120.2, "kWh"),
-      "sensor.demo_bat_soc": st(76, "%"),
-      "sensor.demo_bat_power": st(640, "W"),
-      "sensor.demo_water_total": st(512.303, "m³"),
-      "sensor.demo_water_flow_auto": st(0, "L/min"),
-    };
-
     const callWS = async (msg) => {
       if (msg.type === "energy/get_prefs") return PREFS;
+      if (msg.type === "energy/info") return INFO;
       if (msg.type === "recorder/statistic_during_period") {
         const s = STATS[msg.statistic_id];
         return s ? { change: s.change } : {};
@@ -125,23 +158,39 @@
     };
 
     const cards = [
-      { title: "Energy settings (auto-detect, live)", config: {}, states: autoStates, auto: true },
-      { title: "Taking from the grid, battery charging", config: OWN, states: scenario(3666, 20.7, 0, 0, 0.158, 0, 9, 0.1) },
+      { title: "Default Usage Overview from the Energy settings (live)", config: { water_flow: "sensor.demo_water_flow" }, states: autoStates, auto: true },
+      { title: "Gas, water and electricity, with costs", config: {
+        circle_1: { source: "grid", mode: "now" },
+        circle_2: { source: "water", mode: "today" },
+        circle_3: { source: "gas", mode: "today" },
+        top: { source: "grid", mode: "cost" },
+        middle: { source: "water", mode: "cost" },
+        bottom: { source: "gas", mode: "cost" },
+      }, states: autoStates },
+      { title: "Socket producing, consumption, self-sufficiency, temperature", config: {
+        circle_1: { source: "consumption", mode: "now" },
+        circle_2: { source: "self_sufficiency", mode: "today" },
+        circle_3: { source: "entity", entity: "sensor.demo_room_humidity" },
+        top: { source: "device", mode: "auto", power: "sensor.demo_socket_power", energy: "sensor.demo_socket_energy" },
+        middle: { source: "solar", mode: "now" },
+        bottom: { source: "entity", entity: "sensor.demo_room_temperature", goal_now: 30 },
+      }, states: autoStates },
+      { title: "Photo 10:18: taking from the grid, battery charging", config: OWN, states: scenario(3666, 20.7, 0, 0, 0.158, 0, 9, 0.1) },
       { title: "Summer noon: exporting, battery delivering, water running", config: OWN, states: scenario(-2150, 3.4, 8.6, 64, 0.212, 7.5, -450, 14.2) },
-      { title: "Evening: taking from the grid, battery delivering", config: OWN, states: scenario(1500, 12.3, 4.1, 40, 0.3, 0, -300, 6.0) },
       { title: "Above 10 kW, goals reached", config: OWN, states: scenario(12345, 40, 0, 100, 0.65, 0, 0, 30) },
       { title: "No data at all", config: { use_energy_settings: false }, states: {} },
       { title: "Fixed height 180 px (sections view, rows set)", config: OWN, states: scenario(1500, 12.3, 4.1, 40, 0.3, 0, -300, 6.0), cls: "fixed" },
       { title: "Narrow, 260 px", config: OWN, states: scenario(-480, 2.1, 0.4, 88, 0.05, 0, -120, 3.3), cls: "narrow" },
-      { title: "Own colours", config: { ...OWN, color_grid: "#ff9800", color_delivery: "#00bcd4", color_background: "#1c1c1c" }, states: scenario(820, 5.5, 1.2, 52, 0.12, 0, 0, 8.8) },
+      { title: "Background #1c1c1c and own colours", config: { ...OWN, color_background: "#1c1c1c", color_grid: "#ff9800" }, states: scenario(820, 5.5, 1.2, 52, 0.12, 0, 0, 8.8) },
     ];
 
     const grid = document.getElementById("grid");
     const lang = document.getElementById("lang");
     const els = cards.map((c) => {
       const fig = document.createElement("figure");
-      fig.innerHTML = `<figcaption></figcaption>`;
-      fig.firstChild.textContent = c.title;
+      const cap = document.createElement("figcaption");
+      cap.textContent = c.title;
+      fig.appendChild(cap);
       const el = document.createElement("homewizard-display-card");
       if (c.cls) el.classList.add(c.cls);
       el.setConfig({ type: "custom:homewizard-display-card", ...c.config });
@@ -153,7 +202,7 @@
       states: c.states,
       language: lang.value,
       locale: { language: lang.value, number_format: "language" },
-      config: { time_zone: "Europe/Amsterdam" },
+      config: { time_zone: "Europe/Amsterdam", currency: "EUR" },
       callWS,
     });
     const update = () => cards.forEach((c, i) => { els[i].hass = hassFor(c); });
@@ -167,7 +216,8 @@
       const p = Math.round(Number(s["sensor.demo_p1_power"].state) + (Math.random() - 0.5) * 400);
       s["sensor.demo_p1_power"] = st(p, "W");
       if (p > 0) s["sensor.demo_import_t2"] = st((Number(s["sensor.demo_import_t2"].state) + p / 3.6e6 * 2000).toFixed(4), "kWh");
-      cards[0].states = { ...s };
+      cards.filter((c) => c.states === autoStates || c.auto).forEach((c) => { c.states = { ...s }; });
+      for (const c of cards) if (c.config === cards[1].config || c.config === cards[2].config) c.states = { ...s };
       update();
     }, 2000);
     window.demo = { cards, els, update };

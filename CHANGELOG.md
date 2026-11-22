@@ -3,10 +3,16 @@
 ## Unreleased
 
 * **First version.** The Usage Overview screen of the HomeWizard Energy Display as a dashboard
-  card: grid power with today's import and export, home battery, solar and water.
-* **Energy settings.** Grid (also several tariffs), solar, home battery and water are found
-  automatically; any value can come from an entity of your own instead.
+  card: three circles and three rows.
+* **Set up like the display.** Each circle and row shows a source (main connection, solar panels,
+  home battery, water, gas, electricity use, self-sufficiency, a socket or kWh meter, or any
+  sensor) in the mode now, today, auto or costs, with maximum goals. The default layout is the
+  display's own Usage Overview.
+* **Energy settings.** Grid (also several tariffs), solar, home batteries, water, gas and their
+  cost sensors are found automatically; any value can come from an entity of your own instead.
 * **Today from the statistics.** Today's values come from Home Assistant's statistics, like the
   Energy dashboard, and keep counting live between the 5-minute statistics. Daily meters work too.
-* **Visual editor** in English and Dutch, with daily goals, colours and the sign of the battery
-  power (`battery_power_sign`).
+* **Looks like the display.** Taking energy is purple, delivering is green; rings fill clockwise
+  or counterclockwise and bars from the left or from the right. Small grey decimals in the rows.
+* **Visual editor** in English and Dutch, set up like the HomeWizard app, with the background
+  colour as its own field.
