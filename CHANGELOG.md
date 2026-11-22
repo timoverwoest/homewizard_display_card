@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.1.1 - 2026-11-22
 
 * **Editor shows the defaults.** The switch "Use the Energy settings for empty fields" is on and
   the sign of the battery power is filled in, as the card already used them.
