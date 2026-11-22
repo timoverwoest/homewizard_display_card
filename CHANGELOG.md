@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+* **Editor shows the defaults.** The switch "Use the Energy settings for empty fields" is on and
+  the sign of the battery power is filled in, as the card already used them.
+* **No clear button** on what a circle or row shows and on its mode: each position always shows
+  something (or "none").
+
 ## v0.1.0 - 2026-11-22
 
 * **First version.** The Usage Overview screen of the HomeWizard Energy Display as a dashboard

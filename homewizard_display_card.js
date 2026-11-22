@@ -897,6 +897,9 @@ const HWDC = (() => {
       if (s.mode === null) delete data[key].mode;
     }
     if (empty(data.color_background)) data.color_background = COLOR_DEFAULTS.color_background;
+    // Show the defaults, so the switch is on and the sign is filled in when the config is empty.
+    data.use_energy_settings = config.use_energy_settings !== false;
+    if (empty(data.battery_power_sign)) data.battery_power_sign = SIGNS[0];
     return data;
   };
 
@@ -916,8 +919,10 @@ const HWDC = (() => {
     const slotSchema = (key) => {
       const slot = editorSlot(key, config[key]);
       const spec = SOURCES[slot.source];
+      // required: no clear button, a circle or row always shows something (or "none").
       const items = [{
         name: "source",
+        required: true,
         selector: { select: { mode: "dropdown", options: Object.keys(SOURCES).map((s) => ({ value: s, label: T.source[s] })) } },
       }];
       if (slot.source === "entity") items.push({ name: "entity", selector: { entity: { filter: { domain: "sensor" } } } });
@@ -928,6 +933,7 @@ const HWDC = (() => {
       if (spec.modes.length > 1) {
         items.push({
           name: "mode",
+          required: true,
           helper_text: T.modeHelp[slot.mode],
           selector: { select: { mode: "dropdown", options: spec.modes.map((m) => ({ value: m, label: T.mode[m] })) } },
         });

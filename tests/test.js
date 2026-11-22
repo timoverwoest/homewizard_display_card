@@ -478,6 +478,7 @@ test("editor: like the app, only the modes and goals of the chosen source", () =
   const mode = slot("circle_1").schema.find((s) => s.name === "mode");
   eq(mode.selector.select.options.map((o) => o.label), ["Nu", "Vandaag", "Kosten"]);
   eq(mode.helper_text, "Toont het huidig verbruik");
+  ok(mode.required && slot("circle_1").schema[0].required, "source and mode have no clear button");
   const goal = []; walk(slot("bottom").schema, (s) => s.name === "goal_now" && goal.push(s.selector.number.unit_of_measurement));
   eq(goal, ["L/min"]);
   ok(schema.some((s) => s.name === "color_background"), "background colour visible, not folded away");
@@ -510,6 +511,8 @@ test("editor: tidy configuration, new source starts fresh", () => {
   eq(data.circle_1.goal_now, 6000);
   eq(data.circle_2.source, "battery", "defaults shown in the form");
   eq(data.color_background, "#05070b");
+  eq([data.use_energy_settings, data.battery_power_sign], [true, "discharge_positive"], "defaults visible in the form");
+  eq(HWDC.editorData({ use_energy_settings: false, battery_power_sign: "charge_positive" }).use_energy_settings, false);
   // the user only changes circle 1's source to water
   const changed = { ...data, circle_1: { ...data.circle_1, source: "water" } };
   const cleaned = HWDC.cleanEditorConfig(changed, before);
