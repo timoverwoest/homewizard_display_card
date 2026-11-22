@@ -6,12 +6,12 @@
 
 A Home Assistant dashboard card that recreates the **Usage Overview** screen of the
 [HomeWizard Energy Display](https://www.homewizard.com/energy-display/): three circles and three
-rows that show electricity, solar, home battery, water and gas, now, today or in costs. With one
-tap on the card you switch to **charts** like those of the HomeWizard Energy app.
+rows that show electricity, solar, home battery, water and gas, now, today or in costs. One
+button on the card switches to **charts** like those of the HomeWizard Energy app.
 
-<img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot.png" alt="Default layout while taking power from the grid: purple ring with 1240 W, battery at 58 % delivering, 12.6 kWh solar today, 214 litres of water today" width="49%"> <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-export.png" alt="Default layout while returning power to the grid: green ring with -2150 W, battery at 88 % charging, 14.2 kWh solar today, water running at 7.5 L/min" width="49%">
+<img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot.png" alt="Default layout while taking power from the grid: purple ring with 1240 W, battery at 58 % delivering, 12.6 kWh solar today, 214 liters of water today" width="49%"> <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-export.png" alt="Default layout while returning power to the grid: green ring with -2150 W, battery at 88 % charging, 14.2 kWh solar today, water running at 7.5 L/min" width="49%">
 
-<img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-gas-water.png" alt="Gas, water and electricity: grid power 860 W, 187 litres of water and 2.36 m³ gas today, and today's costs for electricity, water and gas" width="49%">
+<img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-gas-water.png" alt="Gas, water and electricity: grid power 860 W, 187 liters of water and 2.36 m³ gas today, and today's costs for electricity, water and gas" width="49%">
 
 * **Set up like the display.** Each circle and row shows a source (main connection, solar
   panels, home battery, water, gas, electricity use, self-sufficiency, a socket or kWh meter, or
@@ -24,7 +24,7 @@ tap on the card you switch to **charts** like those of the HomeWizard Energy app
   right. Delivering (returning to the grid, solar, a battery that discharges) is green: rings fill
   counterclockwise, bars from right to left.
 * **Visual editor** in English and Dutch, set up like the HomeWizard app. Numbers follow the number
-  format of your profile. Background colour of your choice, by day and by night.
+  format of your profile. Background color of your choice, by day and by night.
 * **Charts like the HomeWizard app.** The button in the corner of the card switches to charts of
   water, gas, the main connection, solar, electricity use, self-sufficiency, standby use, the
   home battery and sensors of your own, per day, week, month or year. Each chart fills the same
@@ -73,7 +73,7 @@ Once the card is in the catalog, you can simply search for **HomeWizard Display 
 Add the card from the card picker (search for "HomeWizard"). The editor is set up like the display
 settings in the HomeWizard app: one section per circle and row (**Circle 1–3**, **Top**,
 **Middle**, **Bottom**) with what it shows, the mode and the maximum goals, then the background
-colour, the sensors and the other colours.
+color, the sensors and the other colors.
 
 In YAML, the shortest version is:
 
@@ -102,7 +102,7 @@ Each position takes `source`, `mode` and the goals that belong to that mode.
 | `grid`: main connection | Power in W; green when returning (7000 W) | Taken from the grid, kWh (25 kWh) | – | Today's costs minus compensation (10) |
 | `solar`: solar panels | Production in W (5000 W) | Production in kWh (25 kWh) | ✓ | – |
 | `battery`: home battery | State of charge in % (100 %) | – | – | – |
-| `water` | Flow in L/min (10 L/min) | Litres (500 L) | ✓ | Today's costs (2) |
+| `water` | Flow in L/min (10 L/min) | Liters (500 L) | ✓ | Today's costs (2) |
 | `gas` | Flow in m³/h (2 m³/h) | m³, or kWh for a gas meter in kWh (5) | ✓ | Today's costs (10) |
 | `consumption`: electricity use of the house | W (7000 W) | kWh (25 kWh) | – | – |
 | `self_sufficiency`: share not taken from the grid | % (100 %) | % (100 %) | – | – |
@@ -119,26 +119,27 @@ Each position takes `source`, `mode` and the goals that belong to that mode.
 * Under the large ring, when it shows the main connection, you see ↓ taken and ↑ returned today,
   like on the display. While you return power, a large ring in *today* mode shows what you
   returned today.
-* A goal is the value at which the ring or bar is full. `color` gives one circle or row a colour
+* A goal is the value at which the ring or bar is full. `color` gives one circle or row a color
   of its own.
 
 ### Charts
 
 <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-charts.png" alt="Charts view: period bar with Today and Day, Week, Month, Year, and two of the charts: the main connection with 16.5 kWh taken and 0.1 kWh returned today, and self-sufficiency with the own solar energy in green" width="60%">
 
-Tap the button in the top-right corner of the card to switch between the display and the charts,
-like the chart toggles of the Energy dashboard. The card keeps the size of the display: each
-chart fills the frame and you scroll (mouse wheel or swipe) from one chart to the next; the dots
-show where you are. Above the charts you choose **Day**, **Week**, **Month** or **Year**, and
-step back in time with ‹ and ›. Point at or tap a chart to see the value at that moment.
+Select the button in the top-right corner of the card to switch between the display and the
+charts, like the chart toggles of the Energy dashboard. The card keeps the size of the display:
+each chart fills the frame and you scroll (mouse wheel, swipe, or the arrow keys) from one chart
+to the next; the dots show where you are. Above the charts you choose **Day**, **Week**,
+**Month** or **Year**, and step back in time with ‹ and ›. Point at a chart, or touch it, to see
+the value at that moment.
 
 * **Day** shows the average power per 5 minutes as an area, like the app. Week, month and year
-  show kWh (or litres, m³) per hour, day or month as bars.
-* The charts use the colours of the display: purple for taking from the grid and electricity use,
+  show kWh (or liters, m³) per hour, day or month as bars.
+* The charts use the colors of the display: purple for taking from the grid and electricity use,
   green for returning, solar and your own energy (self-sufficient), blue for water, orange for
-  gas. A colour you set on a circle or row is used too; when a circle and a row show the same
-  source with different colours, the circle wins. Want other colours in the charts only? Set them
-  under **Chart colours (optional)** (`chart_color_*` below); an empty field keeps the colour of
+  gas. A color you set on a circle or row is used too; when a circle and a row show the same
+  source with different colors, the circle wins. Want other colors in the charts only? Set them
+  under **Chart colors (optional)** (`chart_color_*` below); an empty field keeps the color of
   the display.
 * The charts are drawn at the real size of the card, so axes and values keep the same readable
   size on a phone as on a wide screen. On a narrow card the axes show fewer labels.
@@ -158,7 +159,7 @@ step back in time with ‹ and ›. Point at or tap a chart to see the value at 
 | `chart_color_delivery` | display | Returning to the grid. |
 | `chart_color_solar` | display | Solar panels. |
 | `chart_color_consumption` | display | Electricity use and standby use. |
-| `chart_color_self_sufficiency` | solar | Your own energy in Self-sufficient; empty = the solar colour. |
+| `chart_color_self_sufficiency` | solar | Your own energy in Self-sufficient; empty = the solar color. |
 | `chart_color_battery` | display | Home battery. |
 | `chart_color_water` | display | Water. |
 | `chart_color_gas` | display | Gas. |
@@ -184,11 +185,11 @@ Meters can be total meters, the kind you use in the Energy settings, or daily me
 utility meter that resets at midnight. The card asks Home Assistant's statistics for today's change
 in both cases. An entity without statistics is shown as it is.
 
-### Colours
+### Colors
 
 | Option | Default | Used for |
 |--------|---------|----------|
-| `color_background` | `#05070b` (the black of the display) | Background by day (light theme); any hex colour such as `#000000` or `#f4f4f4` |
+| `color_background` | `#05070b` (the black of the display) | Background by day (light theme); any hex color such as `#000000` or `#f4f4f4` |
 | `color_background_dark` | same as by day | Background by night (dark theme) |
 | `color_grid` | `#a259ff` | Main connection and electricity use |
 | `color_delivery` | `#86d03c` | Delivery: returning, solar, a discharging battery, self-sufficiency |
@@ -203,8 +204,8 @@ or *Dark*. In dark mode the card uses `color_background_dark`; leave it empty to
 background.
 
 By default the card is black like the display, by day and at night. The editor suggests two
-colours that blend in with the theme instead: **light `#f4f5f7`** by day and **dark grey
-`#1c1c1c`** (the card colour of the dark theme) at night. You can also type your own hex colour.
+colors that blend in with the theme instead: **light `#f4f5f7`** by day and **dark gray
+`#1c1c1c`** (the card color of the dark theme) at night. You can also type your own hex color.
 
 ```yaml
 type: custom:homewizard-display-card
@@ -212,9 +213,9 @@ color_background: "#f4f5f7"
 color_background_dark: "#1c1c1c"
 ```
 
-On a light background the card uses darker variants of the accent colours, so rings, bars and
+On a light background the card uses darker variants of the accent colors, so rings, bars and
 units stay readable: `#7c3aed` for the grid, `#4d8f1a` for delivery, `#6d8fa3` for the battery,
-`#1f6fd6` for water and `#c27a00` for gas. Colours you set yourself are kept.
+`#1f6fd6` for water and `#c27a00` for gas. Colors you set yourself are kept.
 
 ### Example
 
@@ -290,6 +291,12 @@ On a Mac without Node, JavaScriptCore works too:
 
 For a visual check, serve the repository root (for example `python3 -m http.server 8765`) and open
 `http://localhost:8765/tests/demo.html`. That page uses a fake Home Assistant with demo values.
+
+The code follows the
+[coding guidelines of the Home Assistant frontend](https://contributors.home-assistant.io/frontend/development/guidelines/)
+and the pages on [custom cards](https://contributors.home-assistant.io/frontend/custom-ui/card/).
+To see which version your browser loaded, run
+`customElements.get("homewizard-display-card").version` in the browser console.
 
 ## Credits and disclaimer
 

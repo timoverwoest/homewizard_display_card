@@ -131,7 +131,7 @@ Elke plek krijgt `source`, `mode` en de doelen die bij die weergave horen.
 
 Tik op de knop rechtsboven in de kaart om te wisselen tussen het display en de grafieken, zoals de
 wisselknoppen op het Energie-dashboard. De kaart houdt de afmeting van het display: elke grafiek
-vult het kader en je scrolt (muiswiel of vegen) van de ene grafiek naar de volgende; de bolletjes
+vult het kader en je scrolt (muiswiel, vegen of pijltjestoetsen) van de ene grafiek naar de volgende; de bolletjes
 laten zien waar je bent. Boven de grafieken kies je **Dag**, **Week**, **Maand** of **Jaar**, en
 met ‹ en › ga je terug in de tijd. Wijs een grafiek aan of tik erop om de waarde op dat moment te
 zien.
@@ -300,6 +300,12 @@ Op een Mac zonder Node werkt JavaScriptCore ook:
 Voor een visuele controle: serveer de root van de repository (bijvoorbeeld
 `python3 -m http.server 8765`) en open `http://localhost:8765/tests/demo.html`. Die pagina gebruikt
 een nagemaakte Home Assistant met demowaarden.
+
+De code volgt de
+[coding guidelines van de Home Assistant-frontend](https://contributors.home-assistant.io/frontend/development/guidelines/)
+en de pagina's over [custom cards](https://contributors.home-assistant.io/frontend/custom-ui/card/).
+Welke versie je browser geladen heeft, zie je met
+`customElements.get("homewizard-display-card").version` in de console van de browser.
 
 ## Credits en disclaimer
 

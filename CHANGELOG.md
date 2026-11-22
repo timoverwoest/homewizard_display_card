@@ -5,16 +5,27 @@
 * **Switch button reacts to the first click.** The button was redrawn on every update from Home
   Assistant, so a mouse click that took longer than one update got lost. It is now only redrawn
   when its look changes. Touch screens were not affected.
-* **Charts follow the colours of the display.** A colour set on a circle or row (for example
+* **Charts follow the colors of the display.** A color set on a circle or row (for example
   orange solar panels) is now also used in the charts, own energy in Self-sufficient included.
-  When a circle and a row show the same source in different colours, the circle wins.
-* **Own chart colours (optional).** New section *Chart colours* in the editor, options
+  When a circle and a row show the same source in different colors, the circle wins.
+* **Own chart colors (optional).** New section *Chart colors* in the editor, options
   `chart_color_grid`, `chart_color_delivery`, `chart_color_solar`, `chart_color_consumption`,
   `chart_color_self_sufficiency`, `chart_color_battery`, `chart_color_water` and
-  `chart_color_gas`. Empty keeps the colour of the display.
+  `chart_color_gas`. Empty keeps the color of the display.
 * **Readable charts on a phone.** The charts are drawn at the real size of the card, so axes and
   values no longer shrink on a narrow screen; the header shrinks to fit, the axes show fewer
   labels when there is little room, and the pointer label stays inside the chart.
+* **Less work on every update.** Home Assistant sends an update for every change in your home.
+  The card now only redraws when something it shows changed, instead of rebuilding the display
+  or all charts each time. The editor no longer rebuilds its form on every update, and the
+  Energy settings and statistics are requested in parallel.
+* **Keyboard and screen reader.** The charts scroll with the arrow keys, ‹ and › have a name, the
+  selected period and chart are announced, and each chart reads out its totals. Buttons are a
+  bit bigger to tap and show a focus ring.
+* **Follows the Home Assistant style guide.** Spacing, radius and font follow the theme tokens,
+  the layout works in right-to-left languages, an error is shown on the card instead of in the
+  browser console, and the card cleans up when it is removed. The English texts now use
+  American spelling ("color"); the option names were already `color_*`.
 
 ## v0.4.0 - 2026-11-22
 

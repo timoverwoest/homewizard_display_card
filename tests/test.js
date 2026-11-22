@@ -662,7 +662,9 @@ test("week view: kWh bars; standby from the lowest use", () => {
   const g = HWDC.chartData({ key: "grid" }, data, src, chartColors, hassNl({}));
   eq([g.kind, g.unit, g.series[1].values[0]], ["bars", "kWh", 0.1]);
   const sb = HWDC.chartData({ key: "standby" }, chartFixture("day"), src, chartColors, hassNl({}));
-  near(sb.note, 1080, "5th percentile of 1200 W and 1080 W");
+  // The day view draws the standby power as a band: the 5th percentile of 1200 W and 1080 W.
+  near(sb.series[1].values.find((v) => v !== null), 1080, "5th percentile of 1200 W and 1080 W");
+  near(sb.header[0].value, (1080 * 2 * 5) / 60 / 1000, "standby energy over the two buckets with data");
 });
 
 test("own sensor chart: line with current value and name", () => {
@@ -714,6 +716,12 @@ test("chart tile on a phone: drawn at its pixel size, text keeps its size", () =
   const ys = [...low.svg.matchAll(/<text x="315" y="([\d.]+)" text-anchor="end"[^>]*font-size="12"/g)].map((m) => Number(m[1]));
   ok(ys.length >= 2 && ys.length <= 4, `y labels on a short tile: ${ys.length}`);
   ys.slice(1).forEach((y, i) => ok(Math.abs(y - ys[i]) >= 20, `y labels apart: ${ys[i]} ${y}`));
+  // As low as a phone leaves (137 px): drawn at that height, labels still apart.
+  const phoneLow = HWDC.renderChartTile(HWDC.chartData({ key: "water" }, day, src, c, h), day.range, HWDC.formatter(h), c, "nl", TZ, "q", { width: 327, height: 137 });
+  ok(phoneLow.svg.includes('viewBox="0 0 327 137"'), "not stretched to a minimum height");
+  const ysLow = [...phoneLow.svg.matchAll(/<text x="315" y="([\d.]+)" text-anchor="end"[^>]*font-size="12"/g)].map((m) => Number(m[1]));
+  ok(ysLow.length >= 2, `y labels on a phone: ${ysLow.length}`);
+  ysLow.slice(1).forEach((y, i) => ok(Math.abs(y - ysLow[i]) >= 20, `y labels apart on a phone: ${ysLow[i]} ${y}`));
   // A year has 12 month labels: on a phone every other one, so they never touch.
   const year = chartFixture("year");
   const yr = HWDC.renderChartTile(HWDC.chartData({ key: "grid" }, year, src, c, h), year.range, HWDC.formatter(h), c, "nl", TZ, "y", { width: 300, height: 180 });

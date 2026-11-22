@@ -105,7 +105,7 @@ const HWDC = (() => {
       return `rgb(${v.map((n) => Math.max(0, Math.min(255, Math.round(Number(n))))).join(",")})`;
     }
     if (typeof v === "string" && COLOR_RE.test(v.trim())) return v.trim();
-    throw new Error(`${key}: expected a colour such as #05070b`);
+    throw new Error(`${key}: expected a color such as #05070b`);
   };
 
   // Relative luminance (0 = black, 1 = white) of a hex or rgb() colour; null if unknown.
@@ -321,6 +321,21 @@ const HWDC = (() => {
     .filter((s) => s && s.source === "device" && s.energy)
     .map((s) => s.energy))];
 
+  // Every entity whose state the card can show. Home Assistant sends a new hass object for any
+  // change in the home; when none of these changed, the card does not need to redraw.
+  const watchedIds = (config, src) => {
+    const ids = new Set();
+    for (const list of Object.values(src)) {
+      for (const x of list) ids.add(typeof x === "string" ? x : x.id);
+    }
+    for (const key of SLOTS) {
+      const s = config[key];
+      for (const id of [s.entity, s.power, s.energy]) if (id) ids.add(id);
+    }
+    for (const id of config.chart_entities) ids.add(id);
+    return [...ids];
+  };
+
   // ---------------------------------------------------------------- units
 
   const FACTORS = {
@@ -367,46 +382,53 @@ const HWDC = (() => {
     return convert(v, unitOf(hass, id), kind);
   };
 
+  // Icon of an own sensor: thermometer, humidity drop, or a gauge for anything else.
+  const entityIcon = (hass, id) => {
+    const st = entityOf(hass, id);
+    const dc = st && st.attributes ? st.attributes.device_class : undefined;
+    return dc === "temperature" || dc === "humidity" ? dc : "entity";
+  };
+
   // Gas is a volume in most countries, but some meters count it in kWh.
   const gasKind = (hass, id) => (FACTORS.energy[unitOf(hass, id)] !== undefined ? "energy" : "volume");
 
   // ---------------------------------------------------------------- today (statistics)
 
-  // Water and gas come back in litres; energy in kWh; costs in their own currency.
+  // Water and gas come back in liters; energy in kWh; costs in their own currency.
   const STAT_UNITS = { energy: "kWh", volume: "L" };
+
+  // One WebSocket command. null when it fails: no Energy settings or no statistics yet are
+  // normal situations, and the card then shows "–".
+  const tryWS = async (hass, msg) => {
+    try {
+      return await hass.callWS(msg);
+    } catch {
+      return null;
+    }
+  };
 
   // Asks the recorder for today's change of every meter, plus the last 5-minute state so the
   // card can add what happened since. Returns {id: {change, lastState, hasStats}}.
   const fetchToday = async (hass, ids, now) => {
     const result = {};
     if (!ids.length) return result;
-    let recent = {};
-    try {
-      recent = (await hass.callWS({
-        type: "recorder/statistics_during_period",
-        start_time: new Date(now - 30 * 60 * 1000).toISOString(),
-        statistic_ids: ids,
-        period: "5minute",
-        types: ["state"],
-        units: STAT_UNITS,
-      })) || {};
-    } catch (e) {
-      recent = {};
-    }
+    const recent = (await tryWS(hass, {
+      type: "recorder/statistics_during_period",
+      start_time: new Date(now - 30 * 60 * 1000).toISOString(),
+      statistic_ids: ids,
+      period: "5minute",
+      types: ["state"],
+      units: STAT_UNITS,
+    })) || {};
     await Promise.all(ids.map(async (id) => {
-      let change = null;
-      try {
-        const r = await hass.callWS({
-          type: "recorder/statistic_during_period",
-          statistic_id: id,
-          calendar: { period: "day" },
-          types: ["change"],
-          units: STAT_UNITS,
-        });
-        if (r && Number.isFinite(r.change)) change = r.change;
-      } catch (e) {
-        change = null;
-      }
+      const r = await tryWS(hass, {
+        type: "recorder/statistic_during_period",
+        statistic_id: id,
+        calendar: { period: "day" },
+        types: ["change"],
+        units: STAT_UNITS,
+      });
+      const change = r && Number.isFinite(r.change) ? r.change : null;
       // Only meter statistics (state_class total/total_increasing) have a "state" per row; a
       // measurement sensor has mean/min/max and counts as "no statistics".
       const rows = (Array.isArray(recent[id]) ? recent[id] : []).filter((r) => r && Number.isFinite(r.state));
@@ -511,7 +533,7 @@ const HWDC = (() => {
         });
       }
       return dayFormatters[tz].format(new Date(now));
-    } catch (e) {
+    } catch {
       return new Date(now).toISOString().slice(0, 10);
     }
   };
@@ -539,7 +561,7 @@ const HWDC = (() => {
       const opts = { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: false };
       try {
         return new Intl.NumberFormat(loc, opts);
-      } catch (e) {
+      } catch {
         return new Intl.NumberFormat("en", opts);
       }
     };
@@ -564,7 +586,7 @@ const HWDC = (() => {
     try {
       const part = new Intl.NumberFormat(loc, { style: "currency", currency: code }).formatToParts(1).find((p) => p.type === "currency");
       return part ? part.value : code;
-    } catch (e) {
+    } catch {
       return code;
     }
   };
@@ -577,7 +599,7 @@ const HWDC = (() => {
     try {
       return pickLang((typeof document !== "undefined" && document.documentElement.lang) ||
         (typeof navigator !== "undefined" && navigator.language) || "en");
-    } catch (e) {
+    } catch {
       return "en";
     }
   };
@@ -613,9 +635,9 @@ const HWDC = (() => {
         goal_now: "Maximum goal now",
         goal_today: "Maximum goal today",
         goal_cost: "Maximum goal costs",
-        color: "Colour (optional)",
-        color_background: "Background colour, day (light theme)",
-        color_background_dark: "Background colour, night (dark theme)",
+        color: "Color (optional)",
+        color_background: "Background color, day (light theme)",
+        color_background_dark: "Background color, night (dark theme)",
         sources: "Sensors",
         grid_power: "Grid power",
         grid_import: "Grid import meter(s)",
@@ -630,14 +652,14 @@ const HWDC = (() => {
         gas: "Gas meter(s)",
         gas_flow: "Gas flow",
         use_energy_settings: "Use the Energy settings for empty fields",
-        colors: "Colours",
+        colors: "Colors",
         color_grid: "Grid and electricity use",
         color_delivery: "Delivery (solar, export, battery)",
         color_battery: "Home battery",
         color_water: "Water",
         color_gas: "Gas",
         color_text: "Text",
-        chart_colors: "Chart colours (optional)",
+        chart_colors: "Chart colors (optional)",
         chart_color_grid: "Grid import",
         chart_color_delivery: "Export",
         chart_color_solar: "Solar panels",
@@ -648,9 +670,9 @@ const HWDC = (() => {
         chart_color_gas: "Gas",
       },
       helpers: {
-        chart_colors: "Empty = the colour of the display: a circle first, then a row, then Colours",
-        chart_color_self_sufficiency: "Empty = the solar colour",
-        color_background: "Pick a suggestion or type your own hex colour",
+        chart_colors: "Empty = the color of the display: a circle first, then a row, then Colors",
+        chart_color_self_sufficiency: "Empty = the solar color",
+        color_background: "Pick a suggestion or type your own hex color",
         color_background_dark: "While Home Assistant shows a dark theme; empty = same as day",
         color_text: "Empty = automatic: white on a dark background, black on a light one",
         charts: "None selected = every chart there is data for",
@@ -661,7 +683,7 @@ const HWDC = (() => {
         battery_power: "Used to show when the battery delivers",
         water_flow: "Not in your Energy settings? Choose the flow sensor of your water meter",
         gas_flow: "No flow sensor? See the README: a derivative helper makes one",
-        color: "Hex colour; empty = the default colour of this source",
+        color: "Hex color; empty = the default color of this source",
         entity: "Any sensor with a number, for example a temperature",
         power: "In W or kW; negative = producing",
         energy: "Total meter in kWh; today's value comes from the statistics",
@@ -671,7 +693,7 @@ const HWDC = (() => {
       bg: {
         display: "Black of the display #05070b (default)",
         day: "Light #f4f5f7: fits a light theme",
-        night: "Dark grey #1c1c1c: fits a dark theme",
+        night: "Dark gray #1c1c1c: fits a dark theme",
       },
     },
     nl: {
@@ -841,12 +863,12 @@ const HWDC = (() => {
         const water = slot.source === "water";
         const color = own(water ? c.color_water : c.color_gas);
         const now = water ? m.waterFlow : m.gasFlow;
-        const today = water ? m.water : m.gas;
+        const amount = water ? m.water : m.gas;
         if (slot.mode === "cost") return make(water ? m.waterCost : m.gasCost, "money", "cost", color);
         const useNow = slot.mode === "now" || (slot.mode === "auto" && flowing(now));
         if (useNow) return make(now, water ? "flow" : "gasflow", "now", color);
         const type = water ? "volume" : m.gasUnit === "kWh" ? "energy" : "m3";
-        return make(today, type, "today", color);
+        return make(amount, type, "today", color);
       }
       case "consumption":
         return slot.mode === "now"
@@ -859,12 +881,7 @@ const HWDC = (() => {
       case "entity": {
         const id = slot.entity;
         const v = id ? stateValue(hass, id, "raw") : null;
-        const st = id ? entityOf(hass, id) : undefined;
-        const dc = st && st.attributes ? st.attributes.device_class : undefined;
-        return make(v, "entity", "now", own(c.color_battery), {
-          unit: unitOf(hass, id) || "",
-          icon: dc === "temperature" ? "temperature" : dc === "humidity" ? "humidity" : "entity",
-        });
+        return make(v, "entity", "now", own(c.color_battery), { unit: unitOf(hass, id) || "", icon: entityIcon(hass, id) });
       }
       default:
         return null;
@@ -1022,6 +1039,7 @@ const HWDC = (() => {
       },
       period: { day: "Day", week: "Week", month: "Month", year: "Year" },
       today: "Today", yesterday: "Yesterday", week: "Week", none: "No data", loading: "Loading…",
+      prev: "Previous period", next: "Next period", charts: "Charts", error: "The card could not be drawn:",
     },
     nl: {
       title: {
@@ -1030,6 +1048,7 @@ const HWDC = (() => {
       },
       period: { day: "Dag", week: "Week", month: "Maand", year: "Jaar" },
       today: "Vandaag", yesterday: "Gisteren", week: "Week", none: "Geen gegevens", loading: "Laden…",
+      prev: "Vorige periode", next: "Volgende periode", charts: "Grafieken", error: "De kaart kon niet getekend worden:",
     },
   };
   const STAT_PERIOD = { day: "5minute", week: "hour", month: "day", year: "month" };
@@ -1049,7 +1068,7 @@ const HWDC = (() => {
       };
       try {
         tzFormatters[key] = new Intl.DateTimeFormat("en-US", { ...opts, timeZone: key });
-      } catch (e) {
+      } catch {
         tzFormatters[key] = new Intl.DateTimeFormat("en-US", { ...opts, timeZone: "UTC" });
       }
     }
@@ -1113,32 +1132,24 @@ const HWDC = (() => {
   // Statistics for a period: "change" for meters and costs, "mean" for state of charge and own
   // sensors. Short-term statistics are kept about ten days; an older day falls back to hours.
   const fetchSeries = async (hass, range, changeIds, meanIds) => {
-    const call = async (r, ids, types, units) => {
-      if (!ids.length) return {};
-      try {
-        return (await hass.callWS({
-          type: "recorder/statistics_during_period",
-          start_time: new Date(r.start).toISOString(),
-          end_time: new Date(r.end).toISOString(),
-          statistic_ids: ids,
-          period: r.statPeriod,
-          types,
-          units,
-        })) || {};
-      } catch (e) {
-        return {};
-      }
-    };
+    const call = async (r, ids, types, units) => (ids.length ? (await tryWS(hass, {
+      type: "recorder/statistics_during_period",
+      start_time: new Date(r.start).toISOString(),
+      end_time: new Date(r.end).toISOString(),
+      statistic_ids: ids,
+      period: r.statPeriod,
+      types,
+      units,
+    })) || {} : {});
+    // Meters and averages in parallel: two requests, one wait.
+    const both = (r) => Promise.all([call(r, changeIds, ["change"], STAT_UNITS), call(r, meanIds, ["mean"], { power: "W" })]);
     let r = range;
-    let change = await call(r, changeIds, ["change"], STAT_UNITS);
-    let mean = await call(r, meanIds, ["mean"], { power: "W" });
+    let [change, mean] = await both(r);
     const nothing = (o) => Object.values(o).every((rows) => !rows || !rows.length);
     if (r.period === "day" && r.statPeriod === "5minute" && nothing(change) && nothing(mean) && (changeIds.length || meanIds.length)) {
-      r = periodRange("day", r.offset, r.now, null, "hour");
-      r = { ...r, start: range.start, end: range.end, buckets: [] };
+      r = { ...range, statPeriod: "hour", buckets: [] };
       for (let t = range.start; t < range.end; t += 3600000) r.buckets.push(t);
-      change = await call(r, changeIds, ["change"], STAT_UNITS);
-      mean = await call(r, meanIds, ["mean"], { power: "W" });
+      [change, mean] = await both(r);
     }
     return { range: r, change, mean };
   };
@@ -1247,17 +1258,17 @@ const HWDC = (() => {
     // An own chart colour first. Else the colour of the display: a colour set on a circle or
     // row for the source (circles win), else the card colour. Own energy (self-sufficient)
     // follows solar, both as chart colour and as display colour.
-    const own = slotColors(c);
+    const slotCol = slotColors(c);
     const pick = (k, display) => c[`chart_color_${k}`] || display;
     const col = {
-      water: pick("water", own.water || c.color_water),
-      gas: pick("gas", own.gas || c.color_gas),
-      grid: pick("grid", own.grid || c.color_grid),
+      water: pick("water", slotCol.water || c.color_water),
+      gas: pick("gas", slotCol.gas || c.color_gas),
+      grid: pick("grid", slotCol.grid || c.color_grid),
       delivery: pick("delivery", c.color_delivery),
-      solar: pick("solar", own.solar || c.color_delivery),
-      consumption: pick("consumption", own.consumption || c.color_grid),
-      self: c.chart_color_self_sufficiency || c.chart_color_solar || own.self_sufficiency || own.solar || c.color_delivery,
-      battery: pick("battery", own.battery || c.color_battery),
+      solar: pick("solar", slotCol.solar || c.color_delivery),
+      consumption: pick("consumption", slotCol.consumption || c.color_grid),
+      self: c.chart_color_self_sufficiency || c.chart_color_solar || slotCol.self_sufficiency || slotCol.solar || c.color_delivery,
+      battery: pick("battery", slotCol.battery || c.color_battery),
     };
     switch (chart.key) {
       case "water": {
@@ -1298,14 +1309,14 @@ const HWDC = (() => {
       }
       case "self_sufficiency": {
         const u = consumption();
-        const own = u.map((v, i) => (v === null ? null : Math.max(0, v - (imp[i] || 0))));
+        const ownEnergy = u.map((v, i) => (v === null ? null : Math.max(0, v - (imp[i] || 0))));
         const e = energy(u);
-        const o = energy(own);
+        const o = energy(ownEnergy);
         return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
-          // Own energy (solar, battery) in the delivery colour of the card, like on the display.
+          // Own energy (solar, battery) in the solar colour, like on the display.
           series: [{ values: e.values, color: col.consumption, arrow: "↓" }, { values: o.values, color: col.self, arrow: "⇅" }],
           header: [
-            { arrow: "⇅", value: total(own), unit: "", decimals: 1, color: col.self },
+            { arrow: "⇅", value: total(ownEnergy), unit: "", decimals: 1, color: col.self },
             { arrow: "↓", value: total(imp), unit: "", decimals: 1, color: col.grid },
             { arrow: "↑", value: total(exp), unit: "kWh", decimals: 1, color: col.delivery },
           ] };
@@ -1321,8 +1332,7 @@ const HWDC = (() => {
         const e = energy(u);
         return { ...base, kind: dayView ? "area" : "bars", unit: e.unit, decimals: dayView ? 0 : 2,
           series: [{ values: e.values, color: col.consumption, faint: true }, { values: band, color: col.consumption, arrow: "↓" }],
-          header: [{ arrow: "↓", value: standbyW === null ? null : (standbyW * hours) / 1000, unit: "kWh", decimals: 1, color: col.consumption }],
-          note: standbyW === null ? null : standbyW };
+          header: [{ arrow: "↓", value: standbyW === null ? null : (standbyW * hours) / 1000, unit: "kWh", decimals: 1, color: col.consumption }] };
       }
       case "battery": {
         const socs = src.batterySoc.map((id) => seriesOf(data.mean[id], range.buckets, "mean"));
@@ -1343,11 +1353,11 @@ const HWDC = (() => {
         // Own sensor, for example a temperature: its average per bucket as a line.
         const id = chart.entity;
         const st = entityOf(hass, id);
-        const dc = st && st.attributes ? st.attributes.device_class : undefined;
-        const color = own[`entity:${id}`] || (dc === "temperature" ? c.color_gas : dc === "humidity" ? c.color_water : c.color_battery);
+        const icon = entityIcon(hass, id);
+        const color = slotCol[`entity:${id}`] || (icon === "temperature" ? c.color_gas : icon === "humidity" ? c.color_water : c.color_battery);
         const unit = unitOf(hass, id) || "";
         const v = stateValue(hass, id, "raw");
-        return { ...base, key: "entity", icon: dc === "temperature" ? "temperature" : dc === "humidity" ? "humidity" : "entity",
+        return { ...base, key: "entity", icon,
           title: (st && st.attributes && st.attributes.friendly_name) || id, kind: "line", unit, decimals: 1,
           series: [{ values: seriesOf(data.mean[id], range.buckets, "mean"), color }],
           header: [{ arrow: "", value: v, unit, decimals: 1, color }] };
@@ -1355,8 +1365,8 @@ const HWDC = (() => {
     }
   };
 
-  // Round axis: about five steps of 1, 2, 2.5 or 5 times a power of ten.
-  // Round axis with about `count` steps (fewer on a short chart, so the labels never touch).
+  // Round axis: about `count` steps (default 5) of 1, 2, 2.5 or 5 times a power of ten. A
+  // short chart asks for fewer, so the labels never touch.
   const niceAxis = (lo, hi, count) => {
     let min = Math.min(lo, hi);
     let max = Math.max(lo, hi);
@@ -1378,7 +1388,7 @@ const HWDC = (() => {
     const fmtDate = (opts) => {
       try {
         return new Intl.DateTimeFormat(loc, { ...opts, timeZone: tz || "UTC" }).format(mid);
-      } catch (e) {
+      } catch {
         return new Intl.DateTimeFormat(loc, opts).format(mid);
       }
     };
@@ -1404,7 +1414,7 @@ const HWDC = (() => {
     const fmt = (t, opts) => {
       try {
         return new Intl.DateTimeFormat(loc, { ...opts, timeZone: tz || "UTC" }).format(new Date(t));
-      } catch (e) {
+      } catch {
         return new Intl.DateTimeFormat(loc, opts).format(new Date(t));
       }
     };
@@ -1432,7 +1442,8 @@ const HWDC = (() => {
   const renderChartTile = (chart, range, fmt, c, lang, tz, uid, size) => {
     const box = size && typeof size === "object" ? size : { width: 800, height: size || 260 };
     const W = Math.max(240, Math.round(box.width || 800));
-    const H = Math.max(160, Math.round(box.height || 260));
+    // Drawn at the height of the tile, so nothing is scaled down (a phone leaves about 140 px).
+    const H = Math.max(120, Math.round(box.height || 260));
     const F = CHART_FONT;
     const pad = W < 480 ? 12 : 16;
     const T = CHART_TEXT[pickLang(lang)];
@@ -1478,8 +1489,8 @@ const HWDC = (() => {
     const hi = chart.max !== undefined ? chart.max : values.length ? Math.max(...values) : 1;
     const top = titleY + (short ? 16 : 22);
     const bottom = H - 28;
-    // At least 10 px between two value labels.
-    const steps = Math.max(2, Math.min(5, Math.floor((bottom - top) / (F.axis + 10))));
+    // At least 8 px between two value labels; a very low chart shows only 0 and the top.
+    const steps = Math.max(1, Math.min(5, Math.floor((bottom - top) / (F.axis + 8))));
     const axis = niceAxis(lo, hi > lo ? hi : lo + 1, steps);
     // Enough decimals for the step: 0.25 → 2, 0.002 → 3.
     const dec = axis.step >= 1 ? 0 : Math.min(4, Math.ceil(-Math.log10(axis.step) + (String(axis.step).includes("25") ? 1 : 0) - 1e-9));
@@ -1553,7 +1564,7 @@ const HWDC = (() => {
         : range.period === "month" ? { day: "numeric", month: "short" } : { month: "long" };
       try {
         return new Intl.DateTimeFormat(lc, { ...opts, timeZone: tz || "UTC" }).format(new Date(t));
-      } catch (e) {
+      } catch {
         return new Intl.DateTimeFormat(lc, opts).format(new Date(t));
       }
     };
@@ -1564,8 +1575,10 @@ const HWDC = (() => {
       const shown = vals.some(([, v]) => v !== 0) ? vals.filter(([, v]) => v !== 0) : vals.slice(0, 1);
       return `${when(t)}  ${shown.map(([a, v]) => `${a}${fmt(v, chart.decimals).text}`).join("  ")} ${chart.unit}`.trim();
     });
-    const svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(chart.title || T.title[chart.key])}"><defs>${defs.join("")}</defs>${parts.join("")}</svg>`;
-    return { svg, meta: { width: W, centers: centers.map((x) => Number(x.toFixed(1))), labels } };
+    // A screen reader hears the title and the totals, like "Water: ↓ 153 L".
+    const spoken = [chart.title || T.title[chart.key], heads.map((h) => `${h.arrow} ${h.num} ${h.unit}`.trim()).join(", ")];
+    const svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(spoken.filter(Boolean).join(": "))}"><defs>${defs.join("")}</defs>${parts.join("")}</svg>`;
+    return { svg, meta: { width: W, title: spoken[0], centers: centers.map((x) => Number(x.toFixed(1))), labels } };
   };
 
   // The whole charts view: period label and one tile per chart. `size`: see renderChartTile.
@@ -1584,7 +1597,7 @@ const HWDC = (() => {
   const editorSlot = (key, raw) => {
     try {
       return normalizeSlot(key, raw);
-    } catch (e) {
+    } catch {
       return normalizeSlot(key, { ...SLOT_DEFAULTS[key] });
     }
   };
@@ -1806,8 +1819,8 @@ const HWDC = (() => {
     VIEWS, CHARTS, PERIODS, tzParts, zonedMidnight, periodRange, bucketHours, fetchSeries, seriesOf,
     chartList, chartStatIds, chartData, niceAxis, periodLabel, xLabels, CHART_FONT, renderChartTile, renderCharts,
     CHART_TEXT, ICONS,
-    normalizeConfig, normalizeSlot, sourcesFromPrefs, resolveSources, needsCosts, meterIds, slotMeterIds, convert,
-    stateValue, gasKind, fetchToday, todayValue, computeModel, msToNextRefresh, dayKey, numberLocale,
+    normalizeConfig, normalizeSlot, sourcesFromPrefs, resolveSources, needsCosts, meterIds, slotMeterIds, watchedIds,
+    convert, stateValue, gasKind, tryWS, fetchToday, todayValue, computeModel, msToNextRefresh, dayKey, numberLocale,
     formatter, pickLang, editorLang, slotView, formatView, renderSvg, editorData, editorSchema,
     cleanEditorConfig, editorLabel, editorHelper,
   };
@@ -1816,38 +1829,52 @@ const HWDC = (() => {
 // ------------------------------------------------------------------ custom elements
 
 if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined") {
+  // Spacing, radius and font follow the theme tokens of Home Assistant (the old values are the
+  // fallback). The colours are those of the display, on purpose. Logical properties
+  // (inset-inline-end, padding-inline-end) move along in right-to-left languages.
+  const FONT_FAMILY = "var(--ha-font-family-body,Roboto,Noto,sans-serif)";
   const STYLE =
     ":host{display:block;height:100%}" +
     "ha-card{position:relative;height:100%;box-sizing:border-box;overflow:hidden;" +
     "background:var(--hwdc-background);color:var(--hwdc-text)}" +
+    "button:focus-visible,.tiles:focus-visible{outline:2px solid var(--primary-color,#03a9f4);outline-offset:-2px}" +
     ".svg{display:flex;align-items:center;justify-content:center;width:100%;height:100%}" +
     ".svg svg{display:block;width:100%;height:100%}" +
-    ".switch{position:absolute;top:6px;right:6px;z-index:1;width:32px;height:32px;padding:6px;border:0;" +
-    "border-radius:50%;background:transparent;color:var(--hwdc-text);opacity:.55;cursor:pointer}" +
+    // 36 px: big enough to tap; the icon stays where it was.
+    ".switch{position:absolute;top:var(--ha-space-1,4px);inset-inline-end:var(--ha-space-1,4px);z-index:1;" +
+    "width:36px;height:36px;padding:8px;border:0;border-radius:50%;background:transparent;color:var(--hwdc-text);" +
+    "opacity:.55;cursor:pointer}" +
     ".switch:hover,.switch:focus-visible{opacity:1;background:color-mix(in srgb,var(--hwdc-text) 14%,transparent)}" +
     ".switch svg{display:block;width:20px;height:20px;fill:currentColor}" +
     // 5:3 like the display. min-height 0: no content-based minimum that would stretch the card.
-    ".charts{display:flex;flex-direction:column;padding:8px;aspect-ratio:5/3;width:100%;min-height:0}" +
-    ".bar{flex:none;display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:0 34px 6px 0;font:600 13px/1.2 Roboto,Noto,sans-serif}" +
+    ".charts{display:flex;flex-direction:column;padding:var(--ha-space-2,8px);aspect-ratio:5/3;width:100%;min-height:0}" +
+    ".bar{flex:none;display:flex;align-items:center;gap:var(--ha-space-1,4px);flex-wrap:wrap;" +
+    `padding-block-end:6px;padding-inline-end:40px;font:600 13px/1.2 ${FONT_FAMILY}}` +
     ".dots{display:inline-flex;gap:4px;margin:0 4px}" +
     ".dots button{width:6px;height:6px;padding:0;border:0;border-radius:50%;background:var(--hwdc-text);opacity:.25;cursor:pointer}" +
     ".dots button.on{opacity:.9}" +
-    ".nav{width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:20px;cursor:pointer}" +
+    ".nav{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:20px;cursor:pointer}" +
     ".nav:disabled{opacity:.25;cursor:default}" +
     ".label{min-width:5.5em;text-align:center}" +
-    ".tabs{display:inline-flex;gap:2px;margin-left:auto;padding:2px;border-radius:16px;" +
+    ".tabs{display:inline-flex;gap:2px;margin-inline-start:auto;padding:2px;border-radius:16px;" +
     "background:color-mix(in srgb,var(--hwdc-text) 8%,transparent)}" +
-    ".tabs button{border:0;border-radius:14px;padding:4px 8px;background:transparent;color:inherit;font:inherit;cursor:pointer}" +
+    ".tabs button{border:0;border-radius:14px;padding:6px 8px;background:transparent;color:inherit;font:inherit;cursor:pointer}" +
     ".tabs button.on{background:color-mix(in srgb,var(--hwdc-text) 18%,transparent);font-weight:700}" +
-    ".tiles{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;" +
-    "scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none}" +
+    ".tiles{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--ha-space-2,8px);overflow-y:auto;" +
+    "scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none;border-radius:var(--ha-border-radius-lg,12px)}" +
     ".tiles::-webkit-scrollbar{display:none}" +
-    ".tile{flex:none;height:100%;scroll-snap-align:start;border-radius:12px;overflow:hidden;touch-action:pan-y;" +
-    "background:color-mix(in srgb,var(--hwdc-text) 4%,var(--hwdc-background))}" +
+    ".tile{flex:none;height:100%;scroll-snap-align:start;border-radius:var(--ha-border-radius-lg,12px);overflow:hidden;" +
+    "touch-action:pan-y;background:color-mix(in srgb,var(--hwdc-text) 4%,var(--hwdc-background))}" +
     ".tile svg{display:block;width:100%;height:100%}" +
-    ".wait{padding:24px;text-align:center;opacity:.6;font:14px Roboto,Noto,sans-serif}";
+    `.wait{padding:24px;text-align:center;opacity:.6;font:14px ${FONT_FAMILY}}`;
 
   class HomeWizardDisplayCard extends HTMLElement {
+    // The loaded version, without logging to the console:
+    // customElements.get("homewizard-display-card").version
+    static get version() {
+      return HWDC.VERSION;
+    }
+
     static getConfigElement() {
       return document.createElement(HWDC.EDITOR_TAG);
     }
@@ -1867,6 +1894,9 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       this._svg = "";
       this._chartsKey = "";
       this._root = null;
+      // Until the Energy settings are loaded: the entities from the configuration.
+      this._watch = HWDC.watchedIds(this._config, HWDC.resolveSources(this._config, null, null));
+      this._invalidate();
       if (this._hass && this.isConnected) this._refresh();
       else this._render();
     }
@@ -1883,13 +1913,24 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
     }
 
     connectedCallback() {
+      // Back on the page (another dashboard view and back): watch the frame size again.
+      const tiles = this._resize && this.shadowRoot && this.shadowRoot.querySelector(".tiles");
+      if (tiles) this._resize.observe(tiles);
       if (this._hass) this._refresh();
     }
 
+    // Off the page: no timer, observer or running refresh keeps working for nothing.
     disconnectedCallback() {
       clearTimeout(this._timer);
       this._timer = null;
       this._run = (this._run || 0) + 1; // a refresh that is still running stops scheduling
+      if (this._resize) this._resize.disconnect();
+    }
+
+    // Something other than the states changed (configuration, data, view, period, size): the
+    // next render draws again, even when no watched entity changed.
+    _invalidate() {
+      this._version = (this._version || 0) + 1;
     }
 
     // Switch between the display and the charts, from the button on the card.
@@ -1898,6 +1939,7 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       this._svg = "";
       this._chartsKey = "";
       this._chart = null;
+      this._invalidate();
       this._render();
       this._refresh();
     }
@@ -1908,6 +1950,7 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       this._offset = Math.max(0, offset);
       this._chart = null;
       this._chartsKey = "";
+      this._invalidate();
       this._render();
       this._refresh();
     }
@@ -1923,56 +1966,53 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       const tz = hass.config && hass.config.time_zone;
       const day = HWDC.dayKey(Date.now(), tz);
       this._loadingDay = day;
-      const costs = charts || HWDC.needsCosts(config);
-      let prefs = null;
-      let info = null;
-      if (config.use_energy_settings) {
-        try {
-          prefs = await hass.callWS({ type: "energy/get_prefs" });
-        } catch (e) {
-          prefs = null; // no Energy settings yet
-        }
-        if (costs) {
-          try {
-            info = await hass.callWS({ type: "energy/info" });
-          } catch (e) {
-            info = null;
-          }
-        }
-      }
-      const sources = HWDC.resolveSources(config, prefs, info);
-      if (charts) {
-        const period = this._period;
-        const offset = this._offset;
-        const range = HWDC.periodRange(period, offset, Date.now(), tz);
-        const list = HWDC.chartList(config, sources);
-        const ids = HWDC.chartStatIds(list, sources);
-        let data = { range, change: {}, mean: {} };
-        try {
-          data = await HWDC.fetchSeries(hass, range, ids.change, ids.mean);
-        } catch (e) {
-          console.warn(`${HWDC.TAG}:`, e);
-        }
-        if (run !== this._run || period !== this._period || offset !== this._offset) return;
-        this._sources = sources;
-        this._chart = { charts: list, data, sources };
-      } else {
-        let today = {};
-        try {
+      try {
+        const costs = charts || HWDC.needsCosts(config);
+        // Energy settings and costs at the same time; null without Energy settings.
+        const [prefs, info] = config.use_energy_settings
+          ? await Promise.all([
+            HWDC.tryWS(hass, { type: "energy/get_prefs" }),
+            costs ? HWDC.tryWS(hass, { type: "energy/info" }) : null,
+          ])
+          : [null, null];
+        const sources = HWDC.resolveSources(config, prefs, info);
+        if (charts) {
+          const period = this._period;
+          const offset = this._offset;
+          const range = HWDC.periodRange(period, offset, Date.now(), tz);
+          const list = HWDC.chartList(config, sources);
+          const ids = HWDC.chartStatIds(list, sources);
+          const data = await HWDC.fetchSeries(hass, range, ids.change, ids.mean);
+          if (run !== this._run || period !== this._period || offset !== this._offset) return;
+          this._chart = { charts: list, data, sources };
+        } else {
           const ids = [...new Set([...HWDC.meterIds(sources, costs), ...HWDC.slotMeterIds(config)])];
-          today = await HWDC.fetchToday(hass, ids, Date.now());
-        } catch (e) {
-          console.warn(`${HWDC.TAG}:`, e);
+          const today = await HWDC.fetchToday(hass, ids, Date.now());
+          if (run !== this._run) return;
+          this._today = today;
         }
-        if (run !== this._run) return;
         this._sources = sources;
-        this._today = today;
+        this._watch = HWDC.watchedIds(config, sources);
+        this._day = day;
+        if (!charts || this._offset === 0) {
+          this._timer = setTimeout(() => this._refresh(), HWDC.msToNextRefresh(Date.now()));
+        }
+        this._invalidate();
+        this._render();
+      } catch (e) {
+        if (run === this._run) this._showError(e);
       }
-      this._day = day;
-      if (!charts || this._offset === 0) {
-        this._timer = setTimeout(() => this._refresh(), HWDC.msToNextRefresh(Date.now()));
-      }
-      this._render();
+    }
+
+    // A fault in the card itself: say so on the card instead of failing silently. The next
+    // update tries again.
+    _showError(e) {
+      if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+      const T = HWDC.CHART_TEXT[HWDC.pickLang(this._hass && ((this._hass.locale && this._hass.locale.language) || this._hass.language))];
+      this._root = null;
+      this._deps = null;
+      this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div class="wait"></div></ha-card>`;
+      this.shadowRoot.querySelector(".wait").textContent = `${T.error} ${e && e.message ? e.message : e}`;
     }
 
     // Builds the shadow DOM for a view once; later renders only change the content.
@@ -1983,10 +2023,11 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       const sw = this._config.show_view_switch ? '<button class="switch" type="button"></button>' : "";
       if (view === "charts") {
         const tabs = HWDC.PERIODS.map((p) => `<button type="button" data-p="${p}"></button>`).join("");
+        // The tiles can take focus, so the charts also scroll with the keyboard (arrows, Page Down).
         this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card class="charts">${sw}` +
-          `<div class="bar"><button class="nav prev" type="button">‹</button><span class="label"></span>` +
+          `<div class="bar"><button class="nav prev" type="button">‹</button><span class="label" aria-live="polite"></span>` +
           `<button class="nav next" type="button">›</button><span class="dots"></span><span class="tabs">${tabs}</span></div>` +
-          '<div class="tiles"></div></ha-card>';
+          '<div class="tiles" tabindex="0" role="region"></div></ha-card>';
         const root = this.shadowRoot;
         root.querySelector(".prev").addEventListener("click", () => this._setPeriod(this._period, this._offset + 1));
         root.querySelector(".next").addEventListener("click", () => this._setPeriod(this._period, this._offset - 1));
@@ -2003,10 +2044,11 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         });
         // Redraw when the frame changes size, so each chart keeps filling it.
         if (typeof ResizeObserver !== "undefined") {
+          if (this._resize) this._resize.disconnect();
           this._resize = new ResizeObserver(() => {
             const s = this._tileSize();
             if (`${s.width}x${s.height}` !== this._lastTileSize) {
-              this._chartsKey = "";
+              this._invalidate();
               this._render();
             }
           });
@@ -2023,14 +2065,22 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
 
     _render() {
       if (!this._config || !this._hass) return;
+      const hass = this._hass;
+      const day = HWDC.dayKey(Date.now(), hass.config && hass.config.time_zone);
+      const today = this._view !== "charts" || this._offset === 0;
+      if (today && this._day && day !== this._day && this._loadingDay !== day && this.isConnected) {
+        this._refresh(); // a new day started: fetch the new statistics
+      }
+      const lang = (hass.locale && hass.locale.language) || hass.language;
+      // Only draw when something the card shows changed: a watched entity, the language or
+      // number format, the theme, or (via the version) data, configuration, view or size.
+      // Home Assistant sends a new hass object for every change in the home.
+      const states = hass.states || {};
+      const deps = [this._version, this._view, hass.locale, lang, hass.config, hass.themes && hass.themes.darkMode,
+        ...(this._watch || []).map((id) => states[id])];
+      if (this._deps && deps.length === this._deps.length && deps.every((v, i) => v === this._deps[i])) return;
+      this._deps = deps;
       try {
-        const hass = this._hass;
-        const day = HWDC.dayKey(Date.now(), hass.config && hass.config.time_zone);
-        const today = this._view !== "charts" || this._offset === 0;
-        if (today && this._day && day !== this._day && this._loadingDay !== day && this.isConnected) {
-          this._refresh(); // a new day started: fetch the new statistics
-        }
-        const lang = (hass.locale && hass.locale.language) || hass.language;
         const nl = HWDC.pickLang(lang) === "nl";
         this._ensureRoot(this._view);
         const card = this.shadowRoot.querySelector("ha-card");
@@ -2052,7 +2102,7 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
         if (this._view === "charts") this._renderCharts(hass, lang);
         else this._renderDisplay(hass, lang);
       } catch (e) {
-        console.warn(`${HWDC.TAG}:`, e);
+        this._showError(e);
       }
     }
 
@@ -2068,13 +2118,23 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
     _renderCharts(hass, lang) {
       const root = this.shadowRoot;
       const T = HWDC.CHART_TEXT[HWDC.pickLang(lang)];
+      // Texts and states of the controls, for the eye and for a screen reader. Only set what
+      // changed, so a press on a control is never interrupted.
+      const set = (el, attr, value) => {
+        if (el.getAttribute(attr) !== value) el.setAttribute(attr, value);
+      };
       root.querySelectorAll(".tabs button").forEach((b) => {
         if (b.textContent !== T.period[b.dataset.p]) b.textContent = T.period[b.dataset.p];
-        if (b.classList.contains("on") !== (b.dataset.p === this._period)) b.classList.toggle("on");
+        const on = b.dataset.p === this._period;
+        if (b.classList.contains("on") !== on) b.classList.toggle("on");
+        set(b, "aria-pressed", String(on));
       });
+      set(root.querySelector(".prev"), "aria-label", T.prev);
       const next = root.querySelector(".next");
+      set(next, "aria-label", T.next);
       if (next.disabled !== (this._offset === 0)) next.disabled = this._offset === 0;
       const tiles = root.querySelector(".tiles");
+      set(tiles, "aria-label", T.charts);
       if (!this._chart) {
         if (this._chartsKey !== "wait") {
           this._chartsKey = "wait";
@@ -2094,14 +2154,28 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       const keep = tiles.scrollTop;
       tiles.innerHTML = out.tiles.map((t, i) => `<div class="tile" data-i="${i}">${t.svg}</div>`).join("") ||
         `<div class="wait">${T.none}</div>`;
-      const first = tiles.querySelector(".tile");
-      tiles.scrollTop = this._keepIndex !== null && this._keepIndex !== undefined && first
-        ? this._keepIndex * (first.offsetHeight + 8) : keep;
+      const step = this._tileStep();
+      tiles.scrollTop = this._keepIndex !== null && this._keepIndex !== undefined && step ? this._keepIndex * step : keep;
       this._keepIndex = null;
       this._tileMeta = out.tiles.map((t) => t.meta);
-      root.querySelector(".dots").innerHTML = out.tiles.length > 1
-        ? out.tiles.map((_, i) => `<button type="button" data-i="${i}" aria-label="${i + 1}"></button>`).join("") : "";
+      // One dot per chart, named after it (built as elements: a sensor name is never HTML).
+      const dots = out.tiles.length > 1 ? out.tiles.map((t, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.dataset.i = String(i);
+        b.setAttribute("aria-label", t.meta.title);
+        return b;
+      }) : [];
+      root.querySelector(".dots").replaceChildren(...dots);
       this._markDot();
+    }
+
+    // Distance from one chart to the next: its height plus the gap of the theme.
+    _tileStep() {
+      const tiles = this.shadowRoot && this.shadowRoot.querySelector(".tiles");
+      const list = tiles ? tiles.querySelectorAll(".tile") : [];
+      if (!list.length) return 0;
+      return list.length > 1 ? list[1].offsetTop - list[0].offsetTop : list[0].offsetHeight;
     }
 
     // Size of one chart in pixels: each chart is drawn at exactly this size, so it fills the
@@ -2115,14 +2189,18 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
     // Index of the chart in view.
     _currentIndex() {
       const tiles = this.shadowRoot && this.shadowRoot.querySelector(".tiles");
-      const first = tiles && tiles.querySelector(".tile");
-      return first ? Math.round(tiles.scrollTop / (first.offsetHeight + 8)) : 0;
+      const step = this._tileStep();
+      return step ? Math.round(tiles.scrollTop / step) : 0;
     }
 
-    // Which chart is in view: highlight its dot.
+    // Which chart is in view: highlight its dot, and mark it for a screen reader.
     _markDot() {
       const i = this._currentIndex();
-      this.shadowRoot.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", k === i));
+      this.shadowRoot.querySelectorAll(".dots button").forEach((b, k) => {
+        b.classList.toggle("on", k === i);
+        if (k === i) b.setAttribute("aria-current", "true");
+        else b.removeAttribute("aria-current");
+      });
     }
 
     // Line and value under the pointer, like the app.
@@ -2162,8 +2240,9 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       g.setAttribute("visibility", "visible");
     }
 
+    // Both views fill the same 5:3 frame (the charts scroll inside it), so one size for both.
     getCardSize() {
-      return this._view === "charts" ? 4 * Math.max(1, (this._chart && this._chart.charts.length) || 6) : 6;
+      return 6;
     }
 
     getGridOptions() {
@@ -2179,12 +2258,14 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       this._render();
     }
 
+    // A new hass object comes with every change in the home. The form only needs it passed on;
+    // labels and schema are rebuilt when the language changes or the first hass arrives.
     set hass(hass) {
+      const rebuild = !this._hass || HWDC.editorLang(this._hass) !== HWDC.editorLang(hass);
       this._hass = hass;
-      if (this._form) {
-        this._form.hass = hass;
-        this._render();
-      }
+      if (!this._form) return;
+      this._form.hass = hass;
+      if (rebuild) this._render();
     }
 
     _render() {
@@ -2220,6 +2301,5 @@ if (typeof HTMLElement !== "undefined" && typeof customElements !== "undefined")
       preview: true,
       documentationURL: "https://github.com/timoverwoest/homewizard_display_card",
     });
-    console.info(`%c HomeWizard Display Card %c ${HWDC.VERSION} `, "background:#a259ff;color:#fff", "background:#05070b;color:#fff");
   }
 }
