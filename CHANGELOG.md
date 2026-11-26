@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.6.0 - 2026-11-26
 
 * **Swipe between charts.** Swipe left or right to go from chart to chart, one chart per swipe.
   Swiping up and down scrolls the page again, instead of scrolling the charts inside the card.

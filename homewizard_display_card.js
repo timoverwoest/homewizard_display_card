@@ -16,7 +16,7 @@
 // License: MIT
 
 const HWDC = (() => {
-  const VERSION = "0.5.0";
+  const VERSION = "0.6.0";
   const TAG = "homewizard-display-card";
   const EDITOR_TAG = "homewizard-display-card-editor";
 
