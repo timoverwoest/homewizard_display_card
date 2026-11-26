@@ -40,24 +40,19 @@ don't need a HomeWizard Energy Display, and other meters work too.
 
 [![Open your Home Assistant instance and show this repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=timoverwoest&repository=homewizard_display_card&category=plugin)
 
-The card has been submitted to the Marketplace catalog. Until it is listed, add it from its link:
+The card is in the Marketplace catalog.
 
-1. Select the button above. Or go to **Settings → Marketplace**, select **Add from link** in the
-   upper-right corner, enter `timoverwoest/homewizard_display_card` and select **Add**.
-2. If you are asked to, connect your GitHub account (custom repositories need it). If the type is
-   not detected, choose **Dashboard**.
-3. Select **Install**. The Marketplace adds the dashboard resource for you.
-4. Reload your browser.
+1. Select the button above, or go to **Settings → Marketplace** and search for
+   **HomeWizard Display Card**.
+2. Select **Install**. The Marketplace adds the dashboard resource for you.
+3. Reload your browser.
 
-Once the card is in the catalog, you can simply search for **HomeWizard Display Card** under
-**Settings → Marketplace**. Updates appear under **Settings → Updates**.
+Updates appear under **Settings → Updates**.
 
 ### HACS (Home Assistant 2026.10 and older)
 
-1. Open HACS, select **⋮ → Custom repositories**, enter
-   `https://github.com/timoverwoest/homewizard_display_card` with type **Dashboard** and select
-   **Add**.
-2. Open **HomeWizard Display Card**, select **Download** and reload your browser.
+1. Open HACS and search for **HomeWizard Display Card**.
+2. Select **Download** and reload your browser.
 
 ### Manual
 

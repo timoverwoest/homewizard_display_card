@@ -42,25 +42,19 @@ geen HomeWizard Energy Display nodig, en andere meters werken ook.
 
 [![Open je Home Assistant en toon deze repository in de Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=timoverwoest&repository=homewizard_display_card&category=plugin)
 
-De kaart is aangemeld voor de catalogus van de Marketplace. Tot hij daarin staat, voeg je hem toe
-via zijn link:
+De kaart staat in de catalogus van de Marketplace.
 
-1. Klik op de knop hierboven. Of ga naar **Instellingen → Marketplace**, kies rechtsboven
-   **Add from link**, vul `timoverwoest/homewizard_display_card` in en kies **Add**.
-2. Koppel je GitHub-account als daarom wordt gevraagd (eigen repository's hebben dat nodig).
-   Herkent de Marketplace het type niet, kies dan **Dashboard**.
-3. Kies **Installeren**. De Marketplace voegt de dashboardbron zelf toe.
-4. Laad je browser opnieuw.
+1. Kies de knop hierboven, of ga naar **Instellingen → Marketplace** en zoek op
+   **HomeWizard Display Card**.
+2. Kies **Installeren**. De Marketplace voegt de dashboardbron zelf toe.
+3. Laad je browser opnieuw.
 
-Staat de kaart eenmaal in de catalogus, dan zoek je onder **Instellingen → Marketplace** gewoon op
-**HomeWizard Display Card**. Updates verschijnen onder **Instellingen → Updates**.
+Updates verschijnen onder **Instellingen → Updates**.
 
 ### HACS (Home Assistant 2026.10 en ouder)
 
-1. Open HACS, kies **⋮ → Custom repositories**, vul
-   `https://github.com/timoverwoest/homewizard_display_card` in met type **Dashboard** en kies
-   **Add**.
-2. Open **HomeWizard Display Card**, kies **Download** en laad je browser opnieuw.
+1. Open HACS en zoek op **HomeWizard Display Card**.
+2. Kies **Download** en laad je browser opnieuw.
 
 ### Handmatig
 
