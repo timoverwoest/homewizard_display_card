@@ -1403,6 +1403,11 @@ test("chart tile: header, axis, area and pointer data", () => {
     "t1"
   );
   ok(tile.svg.includes(">Hoofdaansluiting</text>"), "title");
+  eq(
+    [tile.meta.title, tile.meta.icon],
+    ["Hoofdaansluiting", "grid"],
+    "name and icon for the chart picker"
+  );
   ok(
     tile.svg.includes('fill="#a259ff">0,2</text>') ||
       tile.svg.includes('fill="#a259ff">0,1</text>'),

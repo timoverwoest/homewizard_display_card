@@ -28,8 +28,8 @@ kaart wissel je naar **grafieken** zoals die van de HomeWizard Energy-app.
   volgen de getalnotatie van je profiel. Achtergrondkleur naar keuze, voor dag en nacht.
 * **Grafieken zoals de HomeWizard-app.** De knop in de hoek van de kaart wisselt naar grafieken
   van water, gas, de hoofdaansluiting, zon, stroomverbruik, zelfvoorzienend, standby-verbruik,
-  de thuisaccu en eigen sensoren, per dag, week, maand of jaar. Elke grafiek vult hetzelfde kader
-  als het display; je scrolt van grafiek naar grafiek.
+  de thuisaccu en eigen sensoren, per dag, week, maand of jaar. Elke grafiek heeft de afmeting
+  van het display; veeg van grafiek naar grafiek, of tik op het pictogram.
 * **Eén klein bestand, geen afhankelijkheden.** Past in een secties-weergave en schaalt mee met
   elke breedte.
 
@@ -124,11 +124,19 @@ Elke plek krijgt `source`, `mode` en de doelen die bij die weergave horen.
 <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-charts.png" alt="Grafiekenweergave: periodebalk met Vandaag en Dag, Week, Maand, Jaar, en twee van de grafieken: de hoofdaansluiting met vandaag 16,5 kWh afname en 0,1 kWh teruglevering, en zelfvoorzienend met de eigen zonne-energie in groen" width="60%">
 
 Tik op de knop rechtsboven in de kaart om te wisselen tussen het display en de grafieken, zoals de
-wisselknoppen op het Energie-dashboard. De kaart houdt de afmeting van het display: elke grafiek
-vult het kader en je scrolt (muiswiel, vegen of pijltjestoetsen) van de ene grafiek naar de volgende; de bolletjes
-laten zien waar je bent. Boven de grafieken kies je **Dag**, **Week**, **Maand** of **Jaar**, en
-met ‹ en › ga je terug in de tijd. Wijs een grafiek aan of tik erop om de waarde op dat moment te
-zien.
+wisselknoppen op het Energie-dashboard. Boven de grafieken kies je **Dag**, **Week**, **Maand** of
+**Jaar**, en met ‹ en › ga je terug in de tijd.
+
+* **Van grafiek naar grafiek:** veeg naar links of rechts, of tik op een van de pictogrammen onder
+  de grafieken. Het gemarkeerde pictogram laat zien welke grafiek je ziet. Met een toetsenbord:
+  de pijltjestoetsen. Omhoog en omlaag vegen scrolt gewoon de pagina.
+* **Een waarde op één moment:** wijs de grafiek aan met de muis, of tik erop op een touchscreen.
+  De waarde blijft een paar seconden staan, of tot je veegt.
+* **Afmeting:** op een brede kaart houdt de grafiekenweergave de afmeting van het display. Op een
+  smalle kaart, zoals op een telefoon, heeft elke grafiek de afmeting van het display en staan de
+  knoppen erboven en eronder; de kaart wordt daar dus iets hoger.
+* **Vegen tussen dashboardweergaven** (de swipe-navigation-plugin) laat een veeg over de
+  grafieken met rust.
 
 * **Dag** toont het gemiddelde vermogen per 5 minuten als vlak, zoals de app. Week, maand en jaar
   tonen kWh (of liters, m³) per uur, dag of maand als staafjes.

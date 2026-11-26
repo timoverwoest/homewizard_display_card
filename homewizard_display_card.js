@@ -2506,6 +2506,7 @@ const HWDC = (() => {
       meta: {
         width: W,
         title: spoken[0],
+        icon: ICONS[chart.icon] ? chart.icon : "entity",
         centers: centers.map((x) => Number(x.toFixed(1))),
         labels,
       },
@@ -2995,8 +2996,10 @@ if (
   // fallback). The colours are those of the display, on purpose. Logical properties
   // (inset-inline-end, padding-inline-end) move along in right-to-left languages.
   const FONT_FAMILY = "var(--ha-font-family-body,Roboto,Noto,sans-serif)";
+  // The card is the container for its own layout: a narrow card (a phone) gets bigger controls
+  // and charts at the size of the display, with the controls around them.
   const STYLE =
-    ":host{display:block;height:100%}" +
+    ":host{display:block;height:100%;container-type:inline-size}" +
     "ha-card{position:relative;height:100%;box-sizing:border-box;overflow:hidden;" +
     "background:var(--hwdc-background);color:var(--hwdc-text)}" +
     "button:focus-visible,.tiles:focus-visible{outline:2px solid var(--primary-color,#03a9f4);outline-offset:-2px}" +
@@ -3012,9 +3015,6 @@ if (
     ".charts{display:flex;flex-direction:column;padding:var(--ha-space-2,8px);aspect-ratio:5/3;width:100%;min-height:0}" +
     ".bar{flex:none;display:flex;align-items:center;gap:var(--ha-space-1,4px);flex-wrap:wrap;" +
     `padding-block-end:6px;padding-inline-end:40px;font:600 13px/1.2 ${FONT_FAMILY}}` +
-    ".dots{display:inline-flex;gap:4px;margin:0 4px}" +
-    ".dots button{width:6px;height:6px;padding:0;border:0;border-radius:50%;background:var(--hwdc-text);opacity:.25;cursor:pointer}" +
-    ".dots button.on{opacity:.9}" +
     ".nav{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:20px;cursor:pointer}" +
     ".nav:disabled{opacity:.25;cursor:default}" +
     ".label{min-width:5.5em;text-align:center}" +
@@ -3022,13 +3022,37 @@ if (
     "background:color-mix(in srgb,var(--hwdc-text) 8%,transparent)}" +
     ".tabs button{border:0;border-radius:14px;padding:6px 8px;background:transparent;color:inherit;font:inherit;cursor:pointer}" +
     ".tabs button.on{background:color-mix(in srgb,var(--hwdc-text) 18%,transparent);font-weight:700}" +
-    ".tiles{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--ha-space-2,8px);overflow-y:auto;" +
-    "scroll-snap-type:y mandatory;overscroll-behavior:contain;scrollbar-width:none;border-radius:var(--ha-border-radius-lg,12px)}" +
-    ".tiles::-webkit-scrollbar{display:none}" +
-    ".tile{flex:none;height:100%;scroll-snap-align:start;border-radius:var(--ha-border-radius-lg,12px);overflow:hidden;" +
-    "touch-action:pan-y;background:color-mix(in srgb,var(--hwdc-text) 4%,var(--hwdc-background))}" +
+    // The charts side by side: swipe left and right, one chart per swipe. Up and down stays the
+    // page. ltr: the order and the scroll position are the same in every language.
+    ".tiles{flex:1;min-height:0;display:flex;gap:var(--ha-space-2,8px);overflow-x:auto;overflow-y:hidden;direction:ltr;" +
+    "scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;border-radius:var(--ha-border-radius-lg,12px)}" +
+    ".tiles::-webkit-scrollbar,.picker::-webkit-scrollbar{display:none}" +
+    ".tile{flex:none;width:100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always;" +
+    "border-radius:var(--ha-border-radius-lg,12px);overflow:hidden;touch-action:pan-x pan-y;" +
+    "background:color-mix(in srgb,var(--hwdc-text) 4%,var(--hwdc-background))}" +
     ".tile svg{display:block;width:100%;height:100%}" +
-    `.wait{padding:24px;text-align:center;opacity:.6;font:14px ${FONT_FAMILY}}`;
+    // One icon per chart: where you are, and a tap to go there. Centred; with many charts the
+    // buttons get narrower (not below 30 px) so all stay in view, and only then it scrolls.
+    ".picker{flex:none;display:flex;gap:2px;padding-block-start:6px;overflow-x:auto;direction:ltr;" +
+    "scrollbar-width:none;overscroll-behavior-x:contain}" +
+    ".picker button{flex:1 1 0;min-width:30px;max-width:40px;height:36px;padding:0;border:0;border-radius:18px;" +
+    "display:flex;align-items:center;justify-content:center;" +
+    "background:transparent;color:var(--hwdc-text);opacity:.5;cursor:pointer}" +
+    ".picker button:first-child{margin-inline-start:auto}.picker button:last-child{margin-inline-end:auto}" +
+    ".picker button:hover{opacity:.85}" +
+    ".picker button.on{opacity:1;background:color-mix(in srgb,var(--hwdc-text) 14%,transparent)}" +
+    ".picker svg{display:block;width:22px;height:22px;fill:currentColor}" +
+    `.wait{padding:24px;text-align:center;opacity:.6;font:14px ${FONT_FAMILY}}` +
+    // A narrow card (a phone): each chart at the size of the display (5:3) with the controls
+    // around it, so the card grows; period buttons over the full width; bigger tap targets.
+    "@container (max-width:480px){" +
+    ".charts{aspect-ratio:auto;height:auto}" +
+    ".tiles{flex:none;aspect-ratio:5/3}" +
+    ".nav{width:40px;height:40px}" +
+    ".tabs{flex:1 1 100%;margin-inline:0 -40px}" +
+    ".tabs button{flex:1;padding:9px 0}" +
+    ".picker button{max-width:44px;height:40px}" +
+    "}";
 
   class HomeWizardDisplayCard extends HTMLElement {
     // The loaded version, without logging to the console:
@@ -3095,6 +3119,7 @@ if (
       this._timer = null;
       this._run = (this._run || 0) + 1; // a refresh that is still running stops scheduling
       if (this._resize) this._resize.disconnect();
+      clearTimeout(this._hoverTimer);
     }
 
     // Something other than the states changed (configuration, data, view, period, size): the
@@ -3224,12 +3249,15 @@ if (
         const tabs = HWDC.PERIODS.map(
           (p) => `<button type="button" data-p="${p}"></button>`
         ).join("");
-        // The tiles can take focus, so the charts also scroll with the keyboard (arrows, Page Down).
+        // The tiles can take focus, so the charts also scroll with the keyboard (arrow keys).
+        // "ha-scrollbar": the class the swipe-navigation plugin skips when it overflows, so a
+        // swipe between charts does not also switch the dashboard view.
         this.shadowRoot.innerHTML =
           `<style>${STYLE}</style><ha-card class="charts">${sw}` +
           `<div class="bar"><button class="nav prev" type="button">‹</button><span class="label" aria-live="polite"></span>` +
-          `<button class="nav next" type="button">›</button><span class="dots"></span><span class="tabs">${tabs}</span></div>` +
-          '<div class="tiles" tabindex="0" role="region"></div></ha-card>';
+          `<button class="nav next" type="button">›</button><span class="tabs">${tabs}</span></div>` +
+          '<div class="tiles ha-scrollbar" tabindex="0" role="region"></div>' +
+          '<div class="picker ha-scrollbar" role="group"></div></ha-card>';
         const root = this.shadowRoot;
         root
           .querySelector(".prev")
@@ -3247,22 +3275,38 @@ if (
             b.addEventListener("click", () => this._setPeriod(b.dataset.p, 0))
           );
         const tiles = root.querySelector(".tiles");
-        tiles.addEventListener("pointermove", (e) => this._hover(e));
-        tiles.addEventListener("pointerdown", (e) => this._hover(e));
-        tiles.addEventListener("pointerleave", () => this._hover(null));
-        tiles.addEventListener("scroll", () => this._markDot(), {
-          passive: true,
+        // Mouse: the value follows the pointer. Touch: dragging swipes to another chart, so a
+        // tap shows the value; it stays until the next tap, a swipe, or a few seconds.
+        tiles.addEventListener("pointermove", (e) => {
+          if (e.pointerType === "mouse") this._hover(e);
         });
-        root.querySelector(".dots").addEventListener("click", (e) => {
-          const i =
-            e.target && e.target.dataset ? Number(e.target.dataset.i) : NaN;
-          const tile = root.querySelectorAll(".tile")[i];
-          if (tile) {
-            tiles.scrollTo({
-              top: tile.offsetTop - tiles.offsetTop,
-              behavior: "smooth",
-            });
-          }
+        tiles.addEventListener("pointerleave", (e) => {
+          if (e.pointerType === "mouse") this._hover(null);
+        });
+        tiles.addEventListener("pointerdown", (e) => {
+          this._tap = { x: e.clientX, y: e.clientY };
+        });
+        tiles.addEventListener("pointerup", (e) => {
+          const tap = this._tap;
+          this._tap = null;
+          if (e.pointerType === "mouse" || !tap) return;
+          if (Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 10) return;
+          this._hover(e);
+          clearTimeout(this._hoverTimer);
+          this._hoverTimer = setTimeout(() => this._hover(null), 5000);
+        });
+        tiles.addEventListener(
+          "scroll",
+          () => {
+            this._markPicker();
+            if (this._hoverShown) this._hover(null);
+          },
+          { passive: true }
+        );
+        root.querySelector(".picker").addEventListener("click", (e) => {
+          const b =
+            e.target && e.target.closest ? e.target.closest("button") : null;
+          if (b) this._showChart(Number(b.dataset.i));
         });
         // Redraw when the frame changes size, so each chart keeps filling it.
         if (typeof ResizeObserver !== "undefined") {
@@ -3422,41 +3466,71 @@ if (
       this._chartsKey = key;
       this._lastTileSize = sizeKey;
       root.querySelector(".label").textContent = out.label;
-      const keep = tiles.scrollTop;
+      const keep = tiles.scrollLeft;
       tiles.innerHTML =
         out.tiles
           .map((t, i) => `<div class="tile" data-i="${i}">${t.svg}</div>`)
           .join("") || `<div class="wait">${T.none}</div>`;
+      this._hoverShown = false;
       const step = this._tileStep();
-      tiles.scrollTop =
+      tiles.scrollLeft =
         this._keepIndex !== null && this._keepIndex !== undefined && step
           ? this._keepIndex * step
           : keep;
       this._keepIndex = null;
       this._tileMeta = out.tiles.map((t) => t.meta);
-      // One dot per chart, named after it (built as elements: a sensor name is never HTML).
-      const dots =
+      // One button per chart with its icon, named after the chart (built as elements: a
+      // sensor name is never HTML). Only when there is more than one chart.
+      const picker = root.querySelector(".picker");
+      set(picker, "aria-label", T.charts);
+      const buttons =
         out.tiles.length > 1
           ? out.tiles.map((t, i) => {
               const b = document.createElement("button");
               b.type = "button";
               b.dataset.i = String(i);
+              b.title = t.meta.title;
               b.setAttribute("aria-label", t.meta.title);
+              const svg = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "svg"
+              );
+              svg.setAttribute("viewBox", "0 0 24 24");
+              svg.setAttribute("aria-hidden", "true");
+              const path = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "path"
+              );
+              path.setAttribute(
+                "d",
+                HWDC.ICONS[t.meta.icon] || HWDC.ICONS.entity
+              );
+              svg.appendChild(path);
+              b.appendChild(svg);
               return b;
             })
           : [];
-      root.querySelector(".dots").replaceChildren(...dots);
-      this._markDot();
+      picker.replaceChildren(...buttons);
+      picker.hidden = buttons.length === 0;
+      this._markPicker();
     }
 
-    // Distance from one chart to the next: its height plus the gap of the theme.
+    // Distance from one chart to the next: its width plus the gap of the theme.
     _tileStep() {
       const tiles = this.shadowRoot && this.shadowRoot.querySelector(".tiles");
       const list = tiles ? tiles.querySelectorAll(".tile") : [];
       if (!list.length) return 0;
       return list.length > 1
-        ? list[1].offsetTop - list[0].offsetTop
-        : list[0].offsetHeight;
+        ? list[1].offsetLeft - list[0].offsetLeft
+        : list[0].offsetWidth;
+    }
+
+    // Go to chart i (from the picker), with a short slide.
+    _showChart(i) {
+      const tiles = this.shadowRoot.querySelector(".tiles");
+      const step = this._tileStep();
+      if (!tiles || !step || !Number.isFinite(i)) return;
+      tiles.scrollTo({ left: i * step, behavior: "smooth" });
     }
 
     // Size of one chart in pixels: each chart is drawn at exactly this size, so it fills the
@@ -3476,16 +3550,31 @@ if (
     _currentIndex() {
       const tiles = this.shadowRoot && this.shadowRoot.querySelector(".tiles");
       const step = this._tileStep();
-      return step ? Math.round(tiles.scrollTop / step) : 0;
+      return step ? Math.round(tiles.scrollLeft / step) : 0;
     }
 
-    // Which chart is in view: highlight its dot, and mark it for a screen reader.
-    _markDot() {
+    // Which chart is in view: highlight its button, mark it for a screen reader, and keep it
+    // in sight when the picker itself scrolls (many charts on a narrow card).
+    _markPicker() {
       const i = this._currentIndex();
-      this.shadowRoot.querySelectorAll(".dots button").forEach((b, k) => {
-        b.classList.toggle("on", k === i);
-        if (k === i) b.setAttribute("aria-current", "true");
-        else b.removeAttribute("aria-current");
+      const picker = this.shadowRoot.querySelector(".picker");
+      if (!picker) return;
+      picker.querySelectorAll("button").forEach((b, k) => {
+        const on = k === i;
+        if (b.classList.contains("on") !== on) b.classList.toggle("on", on);
+        if (on) {
+          b.setAttribute("aria-current", "true");
+          const left = b.offsetLeft - picker.offsetLeft;
+          if (left < picker.scrollLeft) picker.scrollLeft = left;
+          else if (
+            left + b.offsetWidth >
+            picker.scrollLeft + picker.clientWidth
+          ) {
+            picker.scrollLeft = left + b.offsetWidth - picker.clientWidth;
+          }
+        } else {
+          b.removeAttribute("aria-current");
+        }
       });
     }
 
@@ -3497,6 +3586,7 @@ if (
       root.querySelectorAll(".tile .hover").forEach((g) => {
         if (!tile || !tile.contains(g)) g.setAttribute("visibility", "hidden");
       });
+      this._hoverShown = false;
       if (!tile || !this._tileMeta) return;
       const meta = this._tileMeta[Number(tile.dataset.i)];
       const svg = tile.querySelector("svg");
@@ -3531,11 +3621,13 @@ if (
       );
       label.textContent = meta.labels[best];
       g.setAttribute("visibility", "visible");
+      this._hoverShown = true;
     }
 
-    // Both views fill the same 5:3 frame (the charts scroll inside it), so one size for both.
+    // Height in rows of 50 px for the masonry view. A wide card keeps the 5:3 frame in both
+    // views; on a narrow card the charts view grows with its controls.
     getCardSize() {
-      return 6;
+      return this._view === "charts" ? 7 : 6;
     }
 
     getGridOptions() {

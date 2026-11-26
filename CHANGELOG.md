@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+* **Swipe between charts.** Swipe left or right to go from chart to chart, one chart per swipe.
+  Swiping up and down scrolls the page again, instead of scrolling the charts inside the card.
+  The swipe-navigation plugin, which switches dashboard views, leaves a swipe on the charts
+  alone.
+* **Chart picker.** A row of chart icons below the charts replaces the small dots: it shows
+  which chart you see, and a tap goes straight to a chart. The buttons are big enough to tap.
+* **Tap for a value.** On a touch screen a tap shows the value at that moment; it stays for a
+  few seconds or until you swipe. With a mouse the value still follows the pointer.
+* **Made for a phone.** On a narrow card each chart has the size of the display, with bigger
+  buttons above and below it, and the period buttons over the full width. A wide card keeps
+  the size of the display in both views.
+* **README:** installing from the Marketplace catalog, where the card is listed now.
+
 ## v0.5.0 - 2026-11-22
 
 * **Switch button reacts to the first click.** The button was redrawn on every update from Home

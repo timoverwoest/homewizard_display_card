@@ -27,8 +27,8 @@ button on the card switches to **charts** like those of the HomeWizard Energy ap
   format of your profile. Background color of your choice, by day and by night.
 * **Charts like the HomeWizard app.** The button in the corner of the card switches to charts of
   water, gas, the main connection, solar, electricity use, self-sufficiency, standby use, the
-  home battery and sensors of your own, per day, week, month or year. Each chart fills the same
-  frame as the display; scroll from chart to chart.
+  home battery and sensors of your own, per day, week, month or year. Each chart has the size of
+  the display; swipe from chart to chart, or tap its icon.
 * **One small file, no dependencies.** Fits in a sections view and scales to any width.
 
 The data comes from Home Assistant, for example from the official HomeWizard integration. You
@@ -122,11 +122,19 @@ Each position takes `source`, `mode` and the goals that belong to that mode.
 <img src="https://raw.githubusercontent.com/timoverwoest/homewizard_display_card/main/images/screenshot-charts.png" alt="Charts view: period bar with Today and Day, Week, Month, Year, and two of the charts: the main connection with 16.5 kWh taken and 0.1 kWh returned today, and self-sufficiency with the own solar energy in green" width="60%">
 
 Select the button in the top-right corner of the card to switch between the display and the
-charts, like the chart toggles of the Energy dashboard. The card keeps the size of the display:
-each chart fills the frame and you scroll (mouse wheel, swipe, or the arrow keys) from one chart
-to the next; the dots show where you are. Above the charts you choose **Day**, **Week**,
-**Month** or **Year**, and step back in time with ‹ and ›. Point at a chart, or touch it, to see
-the value at that moment.
+charts, like the chart toggles of the Energy dashboard. Above the charts you choose **Day**,
+**Week**, **Month** or **Year**, and step back in time with ‹ and ›.
+
+* **From chart to chart:** swipe left or right, or select one of the icons below the charts. The
+  highlighted icon shows which chart you are looking at. With a keyboard: the arrow keys.
+  Swiping up and down still scrolls the page.
+* **A value at one moment:** point at the chart with the mouse, or tap it on a touch screen. The
+  value stays for a few seconds, or until you swipe.
+* **Size:** on a wide card the charts view keeps the size of the display. On a narrow card, like
+  on a phone, each chart has the size of the display and the buttons sit above and below it, so
+  the card gets a bit taller there.
+* **Swipe navigation between dashboard views** (the swipe-navigation plugin) leaves a swipe on the
+  charts alone.
 
 * **Day** shows the average power per 5 minutes as an area, like the app. Week, month and year
   show kWh (or liters, m³) per hour, day or month as bars.
