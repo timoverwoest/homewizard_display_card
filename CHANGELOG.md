@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.7.2 - 2026-11-27
 
 * **Solar power takes a list with two inverters.** When the Energy settings hold more than one
   solar power sensor, the *Solar power* field in the editor now takes a list, like the sensors
