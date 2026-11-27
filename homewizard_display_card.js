@@ -1673,14 +1673,23 @@ const HWDC = (() => {
       range.buckets[i]) /
     3600000;
 
+  const rowStart = (row) =>
+    typeof row.start === "number" ? row.start : Date.parse(row.start);
+
   // Statistics for a period: "change" for meters and costs, "mean" for state of charge and own
-  // sensors. Short-term statistics are kept about ten days; an older day falls back to hours.
+  // sensors.
+  // Home Assistant keeps the 5-minute statistics purge_keep_days (10 by default) and purges at
+  // 04:12, so the oldest day with 5-minute statistics only has them from about 04:15. That first
+  // row has no row before it, and Home Assistant's "change" there is the whole meter reading: a
+  // spike of thousands of kWh. So a day asks one period early. With a row before midnight the day
+  // is complete; without one it comes from the hourly statistics, which are never purged. A meter
+  // added today has no hourly row before midnight either, and keeps its 5-minute statistics.
   const fetchSeries = async (hass, range, changeIds, meanIds) => {
-    const call = async (r, ids, types, units) =>
+    const call = async (r, from, ids, types, units) =>
       ids.length
         ? (await tryWS(hass, {
             type: "recorder/statistics_during_period",
-            start_time: new Date(r.start).toISOString(),
+            start_time: new Date(from).toISOString(),
             end_time: new Date(r.end).toISOString(),
             statistic_ids: ids,
             period: r.statPeriod,
@@ -1689,36 +1698,40 @@ const HWDC = (() => {
           })) || {}
         : {};
     // Meters and averages in parallel: two requests, one wait.
-    const both = (r) =>
+    const both = (r, from) =>
       Promise.all([
-        call(r, changeIds, ["change"], STAT_UNITS),
-        call(r, meanIds, ["mean"], { power: "W" }),
+        call(r, from, changeIds, ["change"], STAT_UNITS),
+        call(r, from, meanIds, ["mean"], { power: "W" }),
       ]);
-    let r = range;
-    let [change, mean] = await both(r);
-    const nothing = (o) =>
-      Object.values(o).every((rows) => !rows || !rows.length);
     if (
-      r.period === "day" &&
-      r.statPeriod === "5minute" &&
-      nothing(change) &&
-      nothing(mean) &&
-      (changeIds.length || meanIds.length)
+      range.period !== "day" ||
+      range.statPeriod !== "5minute" ||
+      !(changeIds.length || meanIds.length)
     ) {
-      r = { ...range, statPeriod: "hour", buckets: [] };
-      for (let t = range.start; t < range.end; t += 3600000) r.buckets.push(t);
-      [change, mean] = await both(r);
+      const [change, mean] = await both(range, range.start);
+      return { range, change, mean };
     }
-    return { range: r, change, mean };
+    const rowsOf = (res) =>
+      res.flatMap((o) => Object.values(o)).flatMap((rows) => rows || []);
+    const early = (res) => rowsOf(res).some((r) => rowStart(r) < range.start);
+    const five = await both(range, range.start - 300000);
+    if (early(five)) return { range, change: five[0], mean: five[1] };
+    const hour = { ...range, statPeriod: "hour", buckets: [] };
+    for (let t = range.start; t < range.end; t += 3600000) hour.buckets.push(t);
+    const hourly = await both(hour, range.start - 3600000);
+    if (rowsOf(five).length && !early(hourly)) {
+      return { range, change: five[0], mean: five[1] };
+    }
+    return { range: hour, change: hourly[0], mean: hourly[1] };
   };
 
-  // One statistic as an array over the buckets (null = no data).
+  // One statistic as an array over the buckets (null = no data). Rows outside the buckets, like
+  // the one before midnight, are left out.
   const seriesOf = (rows, buckets, field) => {
     const index = new Map(buckets.map((t, i) => [t, i]));
     const out = new Array(buckets.length).fill(null);
     for (const row of rows || []) {
-      const t =
-        typeof row.start === "number" ? row.start : Date.parse(row.start);
+      const t = rowStart(row);
       const i = index.get(t);
       if (i !== undefined && Number.isFinite(row[field])) out[i] = row[field];
     }

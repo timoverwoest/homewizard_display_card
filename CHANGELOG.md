@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+* **No spike on the oldest day with 5-minute statistics.** Home Assistant removes the oldest
+  5-minute statistics every night at 04:12, so on that day they start around 04:15. Home
+  Assistant counts the first of them from zero, which showed as a spike of the whole meter
+  reading and a day total thousands of kWh too high. Such a day is now shown per hour, with
+  the same totals as the Energy dashboard.
+
 ## v0.7.0 - 2026-11-27
 
 * **See which sensors the card uses.** In the editor, every empty field under *Sensors* shows the

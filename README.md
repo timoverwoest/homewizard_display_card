@@ -149,7 +149,9 @@ charts, like the chart toggles of the Energy dashboard. Above the charts you cho
 * **Standby use** is the power your house keeps using all the time: the lowest 5 % of the
   averages of the period.
 * Everything comes from Home Assistant's statistics, with the same sources as the display. Home
-  Assistant keeps 5-minute statistics for about ten days; older days are shown per hour.
+  Assistant keeps 5-minute statistics for `purge_keep_days` (ten days by default) and removes
+  the oldest ones every night at 04:12. A day whose 5-minute statistics are gone, even partly,
+  is shown per hour, so its totals match the Energy dashboard.
 
 | Option | Default | Description |
 |--------|---------|-------------|

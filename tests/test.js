@@ -1443,6 +1443,141 @@ const chartFixture = (period) => {
 };
 const chartColors = HWDC.normalizeConfig({});
 
+// The recorder as Home Assistant answers it: rows per period from start_time up to end_time.
+const statsWS = (calls, tables) => async (msg) => {
+  calls.push(msg);
+  const from = Date.parse(msg.start_time);
+  const to = Date.parse(msg.end_time);
+  const out = {};
+  for (const id of msg.statistic_ids) {
+    const rows = ((tables[msg.period] || {})[id] || []).filter(
+      (r) => r.start >= from && r.start < to
+    );
+    if (rows.length) out[id] = rows;
+  }
+  return out;
+};
+const FIVE = 300000;
+const HOUR = 3600000;
+// Rows of one meter every `step` from `from` (inclusive) to `to` (exclusive).
+const meterRows = (from, to, step, change) => {
+  const rows = [];
+  for (let t = from; t < to; t += step) rows.push({ start: t, change });
+  return rows;
+};
+
+testAsync(
+  "day view: a complete day keeps its 5-minute statistics",
+  async () => {
+    const day = HWDC.periodRange("day", 2, NOW, TZ);
+    const calls = [];
+    const five = meterRows(day.start - FIVE, day.end, FIVE, 0.1);
+    const hass = {
+      callWS: statsWS(calls, { "5minute": { "sensor.import": five } }),
+    };
+    const r = await HWDC.fetchSeries(hass, day, ["sensor.import"], []);
+    eq(r.range.statPeriod, "5minute");
+    eq(calls.length, 1, "one request");
+    eq(
+      calls[0].start_time,
+      new Date(day.start - FIVE).toISOString(),
+      "asks one period early"
+    );
+    const s = HWDC.seriesOf(
+      r.change["sensor.import"],
+      r.range.buckets,
+      "change"
+    );
+    eq(s.length, 288);
+    near(
+      s.reduce((a, b) => a + b, 0),
+      28.8,
+      "the row before midnight is not counted"
+    );
+  }
+);
+
+testAsync("day view: a partly purged day comes from the hours", async () => {
+  // 5-minute statistics only from 04:15 (purge at 04:12); the first row has no row before it,
+  // so Home Assistant's change there is the whole meter reading.
+  const day = HWDC.periodRange("day", 2, NOW, TZ);
+  const from = day.start + 51 * FIVE;
+  const five = meterRows(from, day.end, FIVE, 0.1);
+  five[0] = { start: from, change: 16725.842 };
+  const hour = meterRows(day.start - 24 * HOUR, day.end, HOUR, 0.5);
+  const calls = [];
+  const hass = {
+    callWS: statsWS(calls, {
+      "5minute": { "sensor.import": five, "sensor.power": five },
+      hour: { "sensor.import": hour, "sensor.power": hour },
+    }),
+  };
+  const r = await HWDC.fetchSeries(
+    hass,
+    day,
+    ["sensor.import"],
+    ["sensor.power"]
+  );
+  eq(r.range.statPeriod, "hour", "no spike: the whole day in hours");
+  eq(r.range.buckets.length, 24);
+  eq(
+    calls.filter((c) => c.period === "hour").map((c) => c.start_time),
+    [
+      new Date(day.start - HOUR).toISOString(),
+      new Date(day.start - HOUR).toISOString(),
+    ]
+  );
+  const s = HWDC.seriesOf(r.change["sensor.import"], r.range.buckets, "change");
+  near(
+    s.reduce((a, b) => a + b, 0),
+    12,
+    "day total from 24 hours, like the Energy dashboard"
+  );
+});
+
+testAsync("day view: a meter added today keeps its 5 minutes", async () => {
+  const day = HWDC.periodRange("day", 0, NOW, TZ);
+  const five = meterRows(day.start + 100 * FIVE, NOW, FIVE, 0.1);
+  const hour = meterRows(day.start + 9 * HOUR, NOW - HOUR, HOUR, 1);
+  const hass = {
+    callWS: statsWS([], {
+      "5minute": { "sensor.new": five },
+      hour: { "sensor.new": hour },
+    }),
+  };
+  const r = await HWDC.fetchSeries(hass, day, ["sensor.new"], []);
+  eq(r.range.statPeriod, "5minute", "no hour before midnight: not purged");
+});
+
+testAsync("day view: older days and other periods", async () => {
+  const old = HWDC.periodRange("day", 12, NOW, TZ);
+  const hour = meterRows(old.start - HOUR, old.end, HOUR, 0.5);
+  const hass = { callWS: statsWS([], { hour: { "sensor.import": hour } }) };
+  const r = await HWDC.fetchSeries(hass, old, ["sensor.import"], []);
+  eq(r.range.statPeriod, "hour", "no 5-minute statistics left");
+  // the week asks hours from its own start: hourly statistics are never purged
+  const week = HWDC.periodRange("week", 0, NOW, TZ);
+  const calls = [];
+  await HWDC.fetchSeries(
+    { callWS: statsWS(calls, {}) },
+    week,
+    ["sensor.import"],
+    ["sensor.power"]
+  );
+  eq(
+    calls.map((c) => [c.period, c.start_time]),
+    [
+      ["hour", new Date(week.start).toISOString()],
+      ["hour", new Date(week.start).toISOString()],
+    ]
+  );
+  eq(
+    await HWDC.fetchSeries({ callWS: statsWS([], {}) }, old, [], []),
+    { range: old, change: {}, mean: {} },
+    "nothing to ask"
+  );
+});
+
 test("day view: energy per 5 minutes becomes average power", () => {
   const data = chartFixture("day");
   const src = HWDC.resolveSources(chartColors, PREFS, INFO);

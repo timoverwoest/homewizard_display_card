@@ -152,7 +152,10 @@ wisselknoppen op het Energie-dashboard. Boven de grafieken kies je **Dag**, **We
 * **Standby-verbruik** is het vermogen dat je huis altijd blijft gebruiken: de laagste 5 % van de
   gemiddelden in de periode.
 * Alles komt uit de statistieken van Home Assistant, met dezelfde bronnen als het display. Home
-  Assistant bewaart 5-minutenstatistieken ongeveer tien dagen; oudere dagen worden per uur getoond.
+  Assistant bewaart 5-minutenstatistieken `purge_keep_days` lang (standaard tien dagen) en ruimt
+  elke nacht om 04:12 de oudste op. Een dag waarvan de 5-minutenstatistieken weg zijn, ook als
+  dat maar voor een deel is, wordt per uur getoond, zodat de totalen kloppen met het
+  energiedashboard.
 
 | Optie | Standaard | Uitleg |
 |-------|-----------|--------|
