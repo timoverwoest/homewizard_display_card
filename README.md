@@ -187,7 +187,7 @@ direction).
 |--------|-------------|
 | `grid_power` | Power of the grid connection: positive = taking from the grid, negative = returning. W or kW. |
 | `grid_import`, `grid_export` | Meter(s) for energy taken from or returned to the grid. One entity or a list, for example one per tariff. |
-| `solar_power`, `solar_energy` | Power and production meter(s) of the solar panels. |
+| `solar_power`, `solar_energy` | Power and production meter(s) of the solar panels. With more inverters, `solar_power` takes a list too, which is added up; the editor offers a list when the Energy settings hold more than one. |
 | `battery_soc` | State of charge (%). A list of several batteries gives their average. |
 | `battery_power` | Battery power. A list is added up. Used to show when the battery delivers. |
 | `battery_power_sign` | `discharge_positive` (default, Home Assistant's convention) or `charge_positive` if your `battery_power` sensor counts **charging** as positive, like the HomeWizard Plug-In Battery. Batteries from the Energy settings always follow Home Assistant's convention; copying a battery entered as *inverted* sets `charge_positive`. |

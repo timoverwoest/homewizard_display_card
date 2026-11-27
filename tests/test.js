@@ -1298,6 +1298,54 @@ test("editor: one sensor or a list, as the field asks; YAML shape kept", () => {
   );
 });
 
+test("editor: two inverters in the Energy settings make solar power a list", () => {
+  const prefs = {
+    energy_sources: [
+      {
+        type: "grid",
+        power_config: {
+          stat_rate_from: "sensor.grid_in",
+          stat_rate_to: "sensor.grid_out",
+        },
+      },
+      { type: "solar", stat_rate: "sensor.inverter_1_power" },
+      { type: "solar", stat_rate: "sensor.inverter_2_power" },
+    ],
+  };
+  const multiple = (config, p) => {
+    const out = {};
+    const walk = (list) =>
+      list.forEach((s) => {
+        if (s.schema) walk(s.schema);
+        else if (s.selector && s.selector.entity) {
+          out[s.name] = s.selector.entity.multiple;
+        }
+      });
+    walk(HWDC.editorSchema(config, "en", null, p));
+    return [out.solar_power, out.grid_power];
+  };
+  eq(multiple({}, null), [false, false], "no Energy settings: one sensor");
+  eq(
+    multiple({}, prefs),
+    [true, false],
+    "empty: a list, like the two sensors it uses; the grid needs a sign per sensor"
+  );
+  // one sensor picked: the field stays a list, so the second can be added
+  const one = { solar_power: ["sensor.inverter_1_power"] };
+  eq(multiple(one, prefs), [true, false]);
+  eq(HWDC.editorData(one, prefs).solar_power, ["sensor.inverter_1_power"]);
+  eq(HWDC.editorData(one, null).solar_power, "sensor.inverter_1_power");
+  // what the form returns keeps its shape; picking one replaces the default of two
+  const picked = HWDC.cleanEditorConfig(
+    { ...HWDC.editorData({}, prefs), solar_power: ["sensor.inverter_1_power"] },
+    {}
+  );
+  eq(picked.solar_power, ["sensor.inverter_1_power"]);
+  eq(HWDC.resolveSources(HWDC.normalizeConfig(picked), prefs).solarPower, [
+    { id: "sensor.inverter_1_power", sign: 1 },
+  ]);
+});
+
 // ------------------------------------------------------------------ charts view
 
 const TZ = "Europe/Amsterdam";

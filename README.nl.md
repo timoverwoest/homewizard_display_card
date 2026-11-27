@@ -191,7 +191,7 @@ ingevoerd, en een accu met twee sensoren (één per richting).
 |-------|--------|
 | `grid_power` | Vermogen van de netaansluiting: positief = afname van het net, negatief = teruglevering. W of kW. |
 | `grid_import`, `grid_export` | Meter(s) voor afname van en teruglevering aan het net. Eén entiteit of een lijst, bijvoorbeeld één per tarief. |
-| `solar_power`, `solar_energy` | Vermogen en opbrengstmeter(s) van de zonnepanelen. |
+| `solar_power`, `solar_energy` | Vermogen en opbrengstmeter(s) van de zonnepanelen. Bij meer omvormers neemt `solar_power` ook een lijst, die wordt opgeteld; de editor biedt een lijst als de Energie-instellingen er meer dan één hebben. |
 | `battery_soc` | Laadstand (%). Een lijst van meerdere accu's geeft het gemiddelde. |
 | `battery_power` | Vermogen van de accu. Een lijst wordt opgeteld. Bepaalt wanneer de accu levert. |
 | `battery_power_sign` | `discharge_positive` (standaard, de afspraak van Home Assistant) of `charge_positive` als je `battery_power`-sensor **laden** als positief telt, zoals de HomeWizard Plug-In Battery. Accu's uit de Energie-instellingen volgen altijd de afspraak van Home Assistant; een als *omgekeerd* ingevoerde accu overnemen zet `charge_positive`. |

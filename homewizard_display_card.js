@@ -2592,8 +2592,21 @@ const HWDC = (() => {
     gas: "gas",
     gas_flow: "gasFlow",
   };
+  // Per sensor field: the sensors the Energy settings hold for it, with their sign.
+  const energyTerms = (prefs) => {
+    const auto = sourcesFromPrefs(prefs, null);
+    return Object.fromEntries(
+      ENTITY_KEYS.map((key) => [
+        key,
+        auto[ENTITY_AUTO[key]].map((x) =>
+          typeof x === "string" ? { id: x, sign: 1 } : x
+        ),
+      ])
+    );
+  };
+
   // Sensor fields that take several sensors in the editor. The others take one, unless the
-  // configuration already holds more (two inverters, say).
+  // configuration already holds more, or the Energy settings do (`energyListKeys`).
   const MULTI_ENTITY_KEYS = [
     "grid_import",
     "grid_export",
@@ -2603,8 +2616,24 @@ const HWDC = (() => {
     "water",
     "gas",
   ];
-  const entityMultiple = (key, config) =>
-    MULTI_ENTITY_KEYS.includes(key) || toList(config && config[key]).length > 1;
+  // One-sensor fields for which the Energy settings hold several sensors, all counted the same
+  // way (two inverters, say): they take a list, also once filled in, so picking one sensor
+  // does not turn the field back into a one-sensor field. A grid with one sensor per direction
+  // stays one field: the card has no option for the sign of each.
+  const energyListKeys = (prefs) => {
+    if (!prefs) return [];
+    const terms = energyTerms(prefs);
+    return ENTITY_KEYS.filter(
+      (key) =>
+        !MULTI_ENTITY_KEYS.includes(key) &&
+        terms[key].length > 1 &&
+        terms[key].every((t) => t.sign === 1)
+    );
+  };
+  const entityMultiple = (key, config, listKeys = []) =>
+    MULTI_ENTITY_KEYS.includes(key) ||
+    listKeys.includes(key) ||
+    toList(config && config[key]).length > 1;
 
   // Per empty sensor field: the sensors the card takes from the Energy settings instead
   // (`terms`, with their sign), and `value`, what the copy button writes into the card. `value`
@@ -2614,12 +2643,10 @@ const HWDC = (() => {
   const energyDefaults = (config, prefs) => {
     const out = {};
     if (!config || config.use_energy_settings === false || !prefs) return out;
-    const auto = sourcesFromPrefs(prefs, null);
+    const all = energyTerms(prefs);
     for (const key of ENTITY_KEYS) {
       if (toList(config[key]).length) continue;
-      const terms = auto[ENTITY_AUTO[key]].map((x) =>
-        typeof x === "string" ? { id: x, sign: 1 } : x
-      );
+      const terms = all[key];
       if (!terms.length) continue;
       const ids = terms.map((t) => t.id);
       const signs = new Set(terms.map((t) => t.sign));
@@ -2649,13 +2676,15 @@ const HWDC = (() => {
     return out;
   };
 
-  const editorData = (config) => {
+  // `prefs`: the Energy settings, which make some one-sensor fields a list (energyListKeys).
+  const editorData = (config, prefs) => {
     const data = { ...config };
     // One sensor or a list, as the field asks for it.
+    const listKeys = energyListKeys(prefs);
     for (const key of ENTITY_KEYS) {
       const list = toList(config[key]);
       if (!list.length) delete data[key];
-      else data[key] = entityMultiple(key, config) ? list : list[0];
+      else data[key] = entityMultiple(key, config, listKeys) ? list : list[0];
     }
     for (const key of SLOTS) {
       const s = editorSlot(key, config[key]);
@@ -2695,7 +2724,8 @@ const HWDC = (() => {
     }
   };
 
-  const editorSchema = (config, lang, hass) => {
+  // `prefs`: the Energy settings, as for editorData.
+  const editorSchema = (config, lang, hass, prefs) => {
     const T = TEXT[pickLang(lang)];
     const slotSchema = (key) => {
       const slot = editorSlot(key, config[key]);
@@ -2784,11 +2814,12 @@ const HWDC = (() => {
         schema: items,
       };
     };
+    const listKeys = energyListKeys(prefs);
     const entity = (name, deviceClass) => ({
       name,
       selector: {
         entity: {
-          multiple: entityMultiple(name, config),
+          multiple: entityMultiple(name, config, listKeys),
           filter: deviceClass
             ? { domain: "sensor", device_class: deviceClass }
             : { domain: "sensor" },
@@ -3849,10 +3880,15 @@ if (
       const lang = HWDC.editorLang(this._hass);
       if (!this._forms) this._build();
       const defaults = HWDC.energyDefaults(this._config, this._prefs);
-      const schema = HWDC.editorSchema(this._config, lang, this._hass);
+      const schema = HWDC.editorSchema(
+        this._config,
+        lang,
+        this._hass,
+        this._prefs
+      );
       const cut = schema.findIndex((s) => s.name === "sources") + 1;
       const parts = [schema.slice(0, cut), schema.slice(cut)];
-      const data = HWDC.editorData(this._config);
+      const data = HWDC.editorData(this._config, this._prefs);
       this._forms.forEach((form, i) => {
         form.computeLabel = (s) => HWDC.editorLabel(s, lang);
         form.computeHelper = (s) => HWDC.editorHelper(s, lang, defaults);

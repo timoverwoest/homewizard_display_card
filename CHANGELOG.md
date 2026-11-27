@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+* **Solar power takes a list with two inverters.** When the Energy settings hold more than one
+  solar power sensor, the *Solar power* field in the editor now takes a list, like the sensors
+  it uses. Before, it took one sensor, so picking one replaced both inverters. The field stays a
+  list once filled in, so a second sensor can be added.
+
 ## v0.7.1 - 2026-11-27
 
 * **No spike on the oldest day with 5-minute statistics.** Home Assistant removes the oldest
