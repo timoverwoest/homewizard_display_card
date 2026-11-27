@@ -62,7 +62,7 @@ Updates verschijnen onder **Instellingen → Updates**.
    [nieuwste release](https://github.com/timoverwoest/homewizard_display_card/releases/latest)
    (het staat in de broncode) en zet het in `/config/www/`.
 2. Ga naar **Instellingen → Dashboards → ⋮ → Bronnen** en voeg
-   `/local/homewizard_display_card.js?v=0.7.0` toe als **JavaScript-module**.
+   `/local/homewizard_display_card.js?v=0.7.1` toe als **JavaScript-module**.
 3. Laad je browser opnieuw. Verhoog `?v=` bij elke nieuwe versie.
 
 ## Instellen

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.7.1 - 2026-11-27
 
 * **No spike on the oldest day with 5-minute statistics.** Home Assistant removes the oldest
   5-minute statistics every night at 04:12, so on that day they start around 04:15. Home
