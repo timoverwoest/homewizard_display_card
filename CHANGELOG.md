@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.7.0 - 2026-11-27
 
 * **See which sensors the card uses.** In the editor, every empty field under *Sensors* shows the
   sensor the card takes from the Energy settings.

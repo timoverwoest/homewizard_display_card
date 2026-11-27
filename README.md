@@ -60,7 +60,7 @@ Updates appear under **Settings → Updates**.
    [latest release](https://github.com/timoverwoest/homewizard_display_card/releases/latest)
    (it is in the source code) and put it in `/config/www/`.
 2. Go to **Settings → Dashboards → ⋮ → Resources** and add
-   `/local/homewizard_display_card.js?v=0.6.0` as a **JavaScript module**.
+   `/local/homewizard_display_card.js?v=0.7.0` as a **JavaScript module**.
 3. Reload your browser. Raise `?v=` with every new version.
 
 ## Configuration
