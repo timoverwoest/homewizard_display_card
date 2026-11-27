@@ -1010,6 +1010,14 @@ const HWDC = (() => {
         day: "Light #f4f5f7: fits a light theme",
         night: "Dark gray #1c1c1c: fits a dark theme",
       },
+      // Sensors that an empty field takes from the Energy settings, and the copy button.
+      energy: {
+        from: "Empty = {ids} from the Energy settings",
+        kept: "Empty = {ids} from the Energy settings (copying leaves this one there: the card has no option for its sign)",
+        inverted: "inverted",
+        text: "Sensors from the Energy settings: copy them into the card to see and change them in the YAML. After that they no longer follow the Energy settings.",
+        button: "Copy into the card",
+      },
     },
     nl: {
       source: {
@@ -1130,6 +1138,13 @@ const HWDC = (() => {
         display: "Zwart van het display #05070b (standaard)",
         day: "Licht #f4f5f7: past bij een licht thema",
         night: "Donkergrijs #1c1c1c: past bij een donker thema",
+      },
+      energy: {
+        from: "Leeg = {ids} uit de Energie-instellingen",
+        kept: "Leeg = {ids} uit de Energie-instellingen (overnemen laat deze daar: de kaart heeft geen optie voor dit teken)",
+        inverted: "omgekeerd",
+        text: "Sensoren uit de Energie-instellingen: neem ze over in de kaart om ze in de YAML te zien en te wijzigen. Daarna volgen ze de Energie-instellingen niet meer.",
+        button: "Overnemen in de kaart",
       },
     },
   };
@@ -2550,8 +2565,85 @@ const HWDC = (() => {
     }
   };
 
+  // The value of the Energy settings (see sourcesFromPrefs) behind each sensor field.
+  const ENTITY_AUTO = {
+    grid_power: "gridPower",
+    grid_import: "gridImport",
+    grid_export: "gridExport",
+    solar_power: "solarPower",
+    solar_energy: "solar",
+    battery_soc: "batterySoc",
+    battery_power: "batteryPower",
+    water: "water",
+    water_flow: "waterFlow",
+    gas: "gas",
+    gas_flow: "gasFlow",
+  };
+  // Sensor fields that take several sensors in the editor. The others take one, unless the
+  // configuration already holds more (two inverters, say).
+  const MULTI_ENTITY_KEYS = [
+    "grid_import",
+    "grid_export",
+    "solar_energy",
+    "battery_soc",
+    "battery_power",
+    "water",
+    "gas",
+  ];
+  const entityMultiple = (key, config) =>
+    MULTI_ENTITY_KEYS.includes(key) || toList(config && config[key]).length > 1;
+
+  // Per empty sensor field: the sensors the card takes from the Energy settings instead
+  // (`terms`, with their sign), and `value`, what the copy button writes into the card. `value`
+  // is null when the card has no option for the sign: a grid sensor counted the other way
+  // round, or a battery with one sensor per direction. `sign` is the battery_power_sign that
+  // goes with a copied battery sensor.
+  const energyDefaults = (config, prefs) => {
+    const out = {};
+    if (!config || config.use_energy_settings === false || !prefs) return out;
+    const auto = sourcesFromPrefs(prefs, null);
+    for (const key of ENTITY_KEYS) {
+      if (toList(config[key]).length) continue;
+      const terms = auto[ENTITY_AUTO[key]].map((x) =>
+        typeof x === "string" ? { id: x, sign: 1 } : x
+      );
+      if (!terms.length) continue;
+      const ids = terms.map((t) => t.id);
+      const signs = new Set(terms.map((t) => t.sign));
+      const d = {
+        terms,
+        value: MULTI_ENTITY_KEYS.includes(key) || ids.length > 1 ? ids : ids[0],
+      };
+      if (key === "battery_power" && signs.size === 1) {
+        d.sign = signs.has(-1) ? "charge_positive" : SIGNS[0];
+      } else if (signs.has(-1)) {
+        d.value = null;
+      }
+      out[key] = d;
+    }
+    return out;
+  };
+
+  // The configuration after the copy button: every sensor the card can write, in the card.
+  const copyEnergyDefaults = (config, defaults) => {
+    const out = { ...config };
+    for (const [key, d] of Object.entries(defaults)) {
+      if (d.value === null) continue;
+      out[key] = d.value;
+      if (d.sign === SIGNS[0]) delete out.battery_power_sign;
+      else if (d.sign) out.battery_power_sign = d.sign;
+    }
+    return out;
+  };
+
   const editorData = (config) => {
     const data = { ...config };
+    // One sensor or a list, as the field asks for it.
+    for (const key of ENTITY_KEYS) {
+      const list = toList(config[key]);
+      if (!list.length) delete data[key];
+      else data[key] = entityMultiple(key, config) ? list : list[0];
+    }
     for (const key of SLOTS) {
       const s = editorSlot(key, config[key]);
       data[key] = { ...s, color: s.color || "" };
@@ -2679,11 +2771,11 @@ const HWDC = (() => {
         schema: items,
       };
     };
-    const entity = (name, deviceClass, multiple) => ({
+    const entity = (name, deviceClass) => ({
       name,
       selector: {
         entity: {
-          multiple: Boolean(multiple),
+          multiple: entityMultiple(name, config),
           filter: deviceClass
             ? { domain: "sensor", device_class: deviceClass }
             : { domain: "sensor" },
@@ -2790,12 +2882,12 @@ const HWDC = (() => {
         icon: "mdi:meter-electric-outline",
         schema: [
           entity("grid_power", "power"),
-          entity("grid_import", "energy", true),
-          entity("grid_export", "energy", true),
+          entity("grid_import", "energy"),
+          entity("grid_export", "energy"),
           entity("solar_power", "power"),
-          entity("solar_energy", "energy", true),
-          entity("battery_soc", null, true),
-          entity("battery_power", "power", true),
+          entity("solar_energy", "energy"),
+          entity("battery_soc", null),
+          entity("battery_power", "power"),
           {
             name: "battery_power_sign",
             selector: {
@@ -2805,9 +2897,9 @@ const HWDC = (() => {
               },
             },
           },
-          entity("water", "water", true),
+          entity("water", "water"),
           entity("water_flow"),
-          entity("gas", "gas", true),
+          entity("gas", "gas"),
           entity("gas_flow"),
           { name: "use_energy_settings", selector: { boolean: {} } },
         ],
@@ -2888,7 +2980,13 @@ const HWDC = (() => {
       out[key] = nv;
     }
     for (const key of ENTITY_KEYS) {
-      if (toList(out[key]).length === 0) delete out[key];
+      const list = toList(out[key]);
+      const before = previous ? previous[key] : undefined;
+      if (list.length === 0) delete out[key];
+      // Unchanged: keep how it was written (one sensor or a list).
+      else if (JSON.stringify(list) === JSON.stringify(toList(before))) {
+        out[key] = before;
+      }
     }
     for (const key of COLOR_KEYS) {
       if (
@@ -2915,8 +3013,32 @@ const HWDC = (() => {
     return T.labels[schema.name] || T.slot[schema.name] || schema.name;
   };
 
-  const editorHelper = (schema, lang) =>
-    schema.helper_text || TEXT[pickLang(lang)].helpers[schema.name];
+  // Help that is only for a field the Energy settings do not fill ("Not in your Energy
+  // settings?").
+  const HELP_WITHOUT_DEFAULT = ["water_flow", "gas_flow"];
+
+  // `defaults` (energyDefaults): an empty sensor field says which sensor it takes from the
+  // Energy settings, in front of its own help.
+  const editorHelper = (schema, lang, defaults) => {
+    const T = TEXT[pickLang(lang)];
+    const d = defaults && defaults[schema.name];
+    const own =
+      d && HELP_WITHOUT_DEFAULT.includes(schema.name)
+        ? undefined
+        : schema.helper_text || T.helpers[schema.name];
+    if (!d) return own;
+    const ids = d.terms
+      .map((t) => (t.sign < 0 ? `${t.id} (${T.energy.inverted})` : t.id))
+      .join(", ");
+    const line = T.energy[d.value === null ? "kept" : "from"].replace(
+      "{ids}",
+      ids
+    );
+    return own ? `${line}. ${own}` : line;
+  };
+
+  // Text and button of the copy box, in the language of the editor.
+  const editorCopyText = (lang) => TEXT[pickLang(lang)].energy;
 
   return {
     VERSION,
@@ -2983,6 +3105,9 @@ const HWDC = (() => {
     cleanEditorConfig,
     editorLabel,
     editorHelper,
+    editorCopyText,
+    energyDefaults,
+    copyEnergyDefaults,
   };
 })();
 
@@ -3636,49 +3761,98 @@ if (
   }
 
   // Visual editor: Home Assistant's own ha-form, rebuilt after every change so each circle and
-  // row only offers the modes and goals of the chosen source, like the HomeWizard app.
+  // row only offers the modes and goals of the chosen source, like the HomeWizard app. Two
+  // forms with the same data: the copy box for the Energy settings sits right below Sensors.
   class HomeWizardDisplayCardEditor extends HTMLElement {
     setConfig(config) {
       this._config = { ...config };
       this._render();
     }
 
-    // A new hass object comes with every change in the home. The form only needs it passed on;
+    // A new hass object comes with every change in the home. The forms only need it passed on;
     // labels and schema are rebuilt when the language changes or the first hass arrives.
     set hass(hass) {
       const rebuild =
         !this._hass || HWDC.editorLang(this._hass) !== HWDC.editorLang(hass);
       this._hass = hass;
-      if (!this._form) return;
-      this._form.hass = hass;
+      if (!this._prefsAsked) {
+        this._prefsAsked = true;
+        this._loadPrefs();
+      }
+      if (!this._forms) return;
+      for (const form of this._forms) form.hass = hass;
       if (rebuild) this._render();
+    }
+
+    // The Energy settings, once per editor: they tell which sensor an empty field uses.
+    async _loadPrefs() {
+      this._prefs = await HWDC.tryWS(this._hass, { type: "energy/get_prefs" });
+      this._render();
+    }
+
+    _changed(config) {
+      this._config = config;
+      this.dispatchEvent(
+        new CustomEvent("config-changed", {
+          detail: { config },
+          bubbles: true,
+          composed: true,
+        })
+      );
+      this._render();
+    }
+
+    _build() {
+      const onChange = (ev) => {
+        ev.stopPropagation();
+        this._changed(HWDC.cleanEditorConfig(ev.detail.value, this._config));
+      };
+      this._forms = [0, 1].map(() => {
+        const form = document.createElement("ha-form");
+        form.addEventListener("value-changed", onChange);
+        return form;
+      });
+      // Light DOM, so the styles are inline; theme tokens with fallbacks.
+      const box = document.createElement("div");
+      box.style.cssText =
+        "display:flex;flex-wrap:wrap;align-items:center;gap:var(--ha-space-2,8px) var(--ha-space-4,16px);margin-block:var(--ha-space-6,24px)";
+      this._copyText = document.createElement("span");
+      this._copyText.style.cssText =
+        "flex:1 1 220px;color:var(--secondary-text-color);font-size:var(--ha-font-size-s,12px);line-height:1.4";
+      this._copyButton = document.createElement("ha-button");
+      this._copyButton.setAttribute("appearance", "filled");
+      this._copyButton.setAttribute("size", "small");
+      this._copyButton.addEventListener("click", () => {
+        const defaults = HWDC.energyDefaults(this._config, this._prefs);
+        this._changed(HWDC.copyEnergyDefaults(this._config, defaults));
+      });
+      box.append(this._copyText, this._copyButton);
+      this._copyBox = box;
+      this.append(this._forms[0], box, this._forms[1]);
     }
 
     _render() {
       if (!this._config) return;
       const lang = HWDC.editorLang(this._hass);
-      if (!this._form) {
-        this._form = document.createElement("ha-form");
-        this._form.addEventListener("value-changed", (ev) => {
-          ev.stopPropagation();
-          const config = HWDC.cleanEditorConfig(ev.detail.value, this._config);
-          this._config = config;
-          this.dispatchEvent(
-            new CustomEvent("config-changed", {
-              detail: { config },
-              bubbles: true,
-              composed: true,
-            })
-          );
-          this._render();
-        });
-        this.appendChild(this._form);
-      }
-      this._form.computeLabel = (schema) => HWDC.editorLabel(schema, lang);
-      this._form.computeHelper = (schema) => HWDC.editorHelper(schema, lang);
-      if (this._hass) this._form.hass = this._hass;
-      this._form.data = HWDC.editorData(this._config);
-      this._form.schema = HWDC.editorSchema(this._config, lang, this._hass);
+      if (!this._forms) this._build();
+      const defaults = HWDC.energyDefaults(this._config, this._prefs);
+      const schema = HWDC.editorSchema(this._config, lang, this._hass);
+      const cut = schema.findIndex((s) => s.name === "sources") + 1;
+      const parts = [schema.slice(0, cut), schema.slice(cut)];
+      const data = HWDC.editorData(this._config);
+      this._forms.forEach((form, i) => {
+        form.computeLabel = (s) => HWDC.editorLabel(s, lang);
+        form.computeHelper = (s) => HWDC.editorHelper(s, lang, defaults);
+        if (this._hass) form.hass = this._hass;
+        form.data = data;
+        form.schema = parts[i];
+      });
+      // Only while there is something to copy.
+      const copy = HWDC.editorCopyText(lang);
+      const show = Object.values(defaults).some((d) => d.value !== null);
+      this._copyBox.style.display = show ? "flex" : "none";
+      this._copyText.textContent = copy.text;
+      this._copyButton.textContent = copy.button;
     }
   }
 

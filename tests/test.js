@@ -1134,6 +1134,170 @@ test("editor: tidy configuration, new source starts fresh", () => {
   );
 });
 
+test("editor: empty sensor fields show what the Energy settings fill in", () => {
+  const prefs = {
+    energy_sources: [
+      {
+        type: "grid",
+        stat_energy_from: "sensor.import_total",
+        power_config: { stat_rate_inverted: "sensor.grid_power_inverted" },
+      },
+      {
+        type: "solar",
+        stat_energy_from: "sensor.solar_total",
+        stat_rate: "sensor.solar_power",
+      },
+      {
+        type: "battery",
+        stat_soc: "sensor.bat_soc",
+        power_config: { stat_rate_inverted: "sensor.bat_power" },
+      },
+      { type: "water", stat_energy_from: "sensor.water_total" },
+    ],
+  };
+  const config = {
+    type: "custom:homewizard-display-card",
+    water: "sensor.own_water",
+  };
+  const d = HWDC.energyDefaults(config, prefs);
+  eq(
+    Object.keys(d),
+    [
+      "grid_power",
+      "grid_import",
+      "solar_power",
+      "solar_energy",
+      "battery_soc",
+      "battery_power",
+    ],
+    "own water sensor has no default"
+  );
+  eq(d.grid_power.value, null, "inverted grid sensor: no option for it");
+  eq(d.solar_power.value, "sensor.solar_power", "one-sensor field");
+  eq(d.solar_energy.value, ["sensor.solar_total"], "list field");
+  eq(
+    [d.battery_power.value, d.battery_power.sign],
+    [["sensor.bat_power"], "charge_positive"],
+    "inverted battery sensor = positive while charging"
+  );
+  eq(
+    HWDC.editorHelper({ name: "grid_power" }, "en", d),
+    "Empty = sensor.grid_power_inverted (inverted) from the Energy settings (copying leaves this one there: the card has no option for its sign). Positive = taking from the grid, negative = returning"
+  );
+  eq(
+    HWDC.editorHelper({ name: "solar_power" }, "nl", d),
+    "Leeg = sensor.solar_power uit de Energie-instellingen"
+  );
+  eq(HWDC.editorHelper({ name: "water" }, "en", d), undefined, "own sensor");
+  eq(
+    HWDC.editorHelper({ name: "water_flow" }, "en", d),
+    "Not in your Energy settings? Choose the flow sensor of your water meter"
+  );
+  // the copy button
+  const copied = HWDC.copyEnergyDefaults(config, d);
+  eq(
+    [copied.grid_power, copied.grid_import, copied.water],
+    [undefined, ["sensor.import_total"], "sensor.own_water"]
+  );
+  eq(copied.battery_power_sign, "charge_positive");
+  const resolve = (c) => HWDC.resolveSources(HWDC.normalizeConfig(c), prefs);
+  eq(resolve(copied), resolve(config), "copying changes nothing on the card");
+  eq(
+    Object.keys(HWDC.energyDefaults(copied, prefs)),
+    ["grid_power"],
+    "only what cannot be copied is left"
+  );
+  // nothing to show without Energy settings, or with them switched off
+  eq(HWDC.energyDefaults(config, null), {});
+  eq(HWDC.energyDefaults({ use_energy_settings: false }, prefs), {});
+});
+
+test("editor: copying the full Energy settings keeps what the card shows", () => {
+  const d = HWDC.energyDefaults({}, PREFS);
+  eq(d.grid_power.value, "sensor.grid_power");
+  eq(d.battery_power.value, null, "one sensor per direction: stays there");
+  eq(d.water_flow.value, "sensor.water_flow");
+  eq(
+    HWDC.editorHelper({ name: "water_flow" }, "en", d),
+    "Empty = sensor.water_flow from the Energy settings",
+    "no 'Not in your Energy settings?' when it is"
+  );
+  eq(d.solar_energy.value, ["sensor.solar_total", "sensor.solar_old"]);
+  const copied = HWDC.copyEnergyDefaults({}, d);
+  ok(!("battery_power" in copied) && !("battery_power_sign" in copied));
+  const resolve = (c) =>
+    HWDC.resolveSources(HWDC.normalizeConfig(c), PREFS, INFO);
+  eq(resolve(copied), resolve({}), "same sensors and signs");
+  // two inverters and two batteries, each with its own power sensor
+  const two = {
+    energy_sources: [
+      { type: "solar", stat_rate: "sensor.inverter_1_power" },
+      { type: "solar", stat_rate: "sensor.inverter_2_power" },
+      { type: "battery", power_config: { stat_rate: "sensor.bat_1_power" } },
+      { type: "battery", power_config: { stat_rate: "sensor.bat_2_power" } },
+    ],
+  };
+  const both = HWDC.copyEnergyDefaults({}, HWDC.energyDefaults({}, two));
+  eq(both, {
+    solar_power: ["sensor.inverter_1_power", "sensor.inverter_2_power"],
+    battery_power: ["sensor.bat_1_power", "sensor.bat_2_power"],
+  });
+  eq(
+    HWDC.resolveSources(HWDC.normalizeConfig(both), two),
+    HWDC.resolveSources(HWDC.normalizeConfig({}), two)
+  );
+  // a sign chosen by hand had no effect on an empty field; it follows the copied sensor
+  const one = HWDC.energyDefaults(
+    { battery_power_sign: "charge_positive" },
+    {
+      energy_sources: [{ type: "battery", stat_rate: "sensor.bat_power" }],
+    }
+  );
+  eq(HWDC.copyEnergyDefaults({ battery_power_sign: "charge_positive" }, one), {
+    battery_power: ["sensor.bat_power"],
+  });
+});
+
+test("editor: one sensor or a list, as the field asks; YAML shape kept", () => {
+  const config = {
+    water: "sensor.water_a",
+    grid_power: ["sensor.grid_a"],
+    solar_power: ["sensor.inverter_1", "sensor.inverter_2"],
+  };
+  const data = HWDC.editorData(config);
+  eq(
+    [data.water, data.grid_power, data.solar_power],
+    [["sensor.water_a"], "sensor.grid_a", config.solar_power]
+  );
+  const fields = {};
+  const walk = (list) =>
+    list.forEach((s) => {
+      if (s.schema) walk(s.schema);
+      else if (s.selector && s.selector.entity) fields[s.name] = s.selector;
+    });
+  walk(HWDC.editorSchema(config, "en", null));
+  eq(
+    [
+      fields.water.entity.multiple,
+      fields.grid_power.entity.multiple,
+      fields.solar_power.entity.multiple,
+    ],
+    [true, false, true],
+    "two inverters: the one-sensor field takes a list"
+  );
+  const cleaned = HWDC.cleanEditorConfig(data, config);
+  eq(
+    [cleaned.water, cleaned.grid_power],
+    ["sensor.water_a", ["sensor.grid_a"]],
+    "unchanged fields keep how they were written"
+  );
+  eq(
+    HWDC.cleanEditorConfig({ ...data, water: ["sensor.water_b"] }, config)
+      .water,
+    ["sensor.water_b"]
+  );
+});
+
 // ------------------------------------------------------------------ charts view
 
 const TZ = "Europe/Amsterdam";

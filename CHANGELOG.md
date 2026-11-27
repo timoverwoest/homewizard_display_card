@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+* **See which sensors the card uses.** In the editor, every empty field under *Sensors* shows the
+  sensor the card takes from the Energy settings.
+* **Copy them into the card.** A new button below *Sensors*, *Copy into the card*, writes those
+  sensors into the card's configuration, so they show up in the YAML and you can change them
+  there or in the editor. After copying they no longer follow the Energy settings. A grid sensor
+  entered as inverted or as two sensors, and a battery with one sensor per direction, stay with
+  the Energy settings: the card has no option for those.
+* **One sensor or a list.** A sensor field that takes one sensor takes a list when there are more
+  (two inverters, say), and a field you don't change keeps how it was written in the YAML.
+
 ## v0.6.0 - 2026-11-26
 
 * **Swipe between charts.** Swipe left or right to go from chart to chart, one chart per swipe.

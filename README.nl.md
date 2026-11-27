@@ -175,6 +175,15 @@ wisselknoppen op het Energie-dashboard. Boven de grafieken kies je **Dag**, **We
 Elke waarde kan uit een eigen entiteit komen; velden die je leeg laat, worden aangevuld uit de
 Energie-instellingen.
 
+**Welke sensoren gebruikt de kaart?** In de editor staat onder elk leeg veld bij **Sensoren**
+welke sensor de kaart uit de Energie-instellingen haalt (*Leeg = sensor.… uit de
+Energie-instellingen*). Wil je ze ook in de YAML zien, druk dan onder Sensoren op **Overnemen in
+de kaart**: de kaart zet die sensoren dan in de configuratie van de kaart, waar je ze in de editor
+of in de YAML kunt wijzigen. Na het overnemen volgen ze de Energie-instellingen niet meer; maak
+een veld leeg om ze weer te volgen. Twee gevallen blijven bij de Energie-instellingen, omdat de
+kaart er geen optie voor heeft: een netvermogen dat als *omgekeerd* of als *twee sensoren* is
+ingevoerd, en een accu met twee sensoren (één per richting).
+
 | Optie | Uitleg |
 |-------|--------|
 | `grid_power` | Vermogen van de netaansluiting: positief = afname van het net, negatief = teruglevering. W of kW. |
@@ -182,7 +191,7 @@ Energie-instellingen.
 | `solar_power`, `solar_energy` | Vermogen en opbrengstmeter(s) van de zonnepanelen. |
 | `battery_soc` | Laadstand (%). Een lijst van meerdere accu's geeft het gemiddelde. |
 | `battery_power` | Vermogen van de accu. Een lijst wordt opgeteld. Bepaalt wanneer de accu levert. |
-| `battery_power_sign` | `discharge_positive` (standaard, de afspraak van Home Assistant) of `charge_positive` als je `battery_power`-sensor **laden** als positief telt, zoals de HomeWizard Plug-In Battery. Accu's uit de Energie-instellingen volgen altijd de afspraak van Home Assistant. |
+| `battery_power_sign` | `discharge_positive` (standaard, de afspraak van Home Assistant) of `charge_positive` als je `battery_power`-sensor **laden** als positief telt, zoals de HomeWizard Plug-In Battery. Accu's uit de Energie-instellingen volgen altijd de afspraak van Home Assistant; een als *omgekeerd* ingevoerde accu overnemen zet `charge_positive`. |
 | `water`, `water_flow` | Watermeter(s) en de debietsensor (L/min, m³/h enzovoort). |
 | `gas`, `gas_flow` | Gasmeter(s) en een debietsensor (m³/h). |
 | `use_energy_settings` | `false`: alleen de entiteiten gebruiken die je zelf instelt. Standaard `true`. |

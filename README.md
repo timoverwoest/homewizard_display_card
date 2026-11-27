@@ -172,6 +172,15 @@ charts, like the chart toggles of the Energy dashboard. Above the charts you cho
 Every value can come from an entity of your own; fields you leave empty are filled in from the
 Energy settings.
 
+**Which sensors does the card use?** In the editor, every empty field under **Sensors** shows the
+sensor the card takes from the Energy settings (*Empty = sensor.… from the Energy settings*). To
+see them in the YAML as well, press **Copy into the card** below Sensors: the card then writes
+those sensors into its configuration, where you can change them in the editor or in the YAML.
+After copying they no longer follow the Energy settings; clear a field to follow them again. Two
+cases stay with the Energy settings, because the card has no option for them: a grid power sensor
+entered as *inverted* or as *two sensors*, and a battery entered as two sensors (one per
+direction).
+
 | Option | Description |
 |--------|-------------|
 | `grid_power` | Power of the grid connection: positive = taking from the grid, negative = returning. W or kW. |
@@ -179,7 +188,7 @@ Energy settings.
 | `solar_power`, `solar_energy` | Power and production meter(s) of the solar panels. |
 | `battery_soc` | State of charge (%). A list of several batteries gives their average. |
 | `battery_power` | Battery power. A list is added up. Used to show when the battery delivers. |
-| `battery_power_sign` | `discharge_positive` (default, Home Assistant's convention) or `charge_positive` if your `battery_power` sensor counts **charging** as positive, like the HomeWizard Plug-In Battery. Batteries from the Energy settings always follow Home Assistant's convention. |
+| `battery_power_sign` | `discharge_positive` (default, Home Assistant's convention) or `charge_positive` if your `battery_power` sensor counts **charging** as positive, like the HomeWizard Plug-In Battery. Batteries from the Energy settings always follow Home Assistant's convention; copying a battery entered as *inverted* sets `charge_positive`. |
 | `water`, `water_flow` | Water meter(s) and the flow sensor (L/min, m³/h and so on). |
 | `gas`, `gas_flow` | Gas meter(s) and a flow sensor (m³/h). |
 | `use_energy_settings` | `false`: only use the entities you set yourself. Default `true`. |
